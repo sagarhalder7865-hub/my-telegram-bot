@@ -465,4 +465,48 @@ async def cmd_addreseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"✅ `{uid}` is now a Reseller 🏷", parse_mode="Markdown")
         try:
             await context.bot.send_message(uid, "🎉 You are now a *Reseller*!\nSpecial prices active.\nUse /start to refresh.", parse_mode="Markdown")
-        except Exception: p
+        except Exception: pass
+    except Exception:
+        await update.message.reply_text("Usage: /addreseller <user_id>")
+
+async def cmd_removereseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID: return
+    try:
+        uid = int(context.args[0])
+        db_remove_reseller(uid)
+        await update.message.reply_text(f"✅ `{uid}` removed from resellers", parse_mode="Markdown")
+    except Exception:
+        await update.message.reply_text("Usage: /removereseller <user_id>")
+
+async def cmd_resellers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID: return
+    rlist = db_all_resellers()
+    if not rlist:
+        await update.message.reply_text("No resellers yet.")
+        return
+    await update.message.reply_text("🏷 *Resellers:*\n" + "\n".join(f"• `{r}`" for r in rlist), parse_mode="Markdown")
+
+if __name__ == "__main__":
+    if not TOKEN:
+        print("ERROR: TELEGRAM_BOT_TOKEN is not set.")
+        exit(1)
+    init_db()
+    print("Database ready ✅")
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start",          start))
+    app.add_handler(CommandHandler("help",           cmd_help))
+    app.add_handler(CommandHandler("add",            cmd_add))
+    app.add_handler(CommandHandler("addkey",         cmd_addkey))
+    app.add_handler(CommandHandler("stock",          cmd_stock))
+    app.add_handler(CommandHandler("setprice",       cmd_setprice))
+    app.add_handler(CommandHandler("prices",         cmd_prices))
+    app.add_handler(CommandHandler("deliver",        cmd_deliver))
+    app.add_handler(CommandHandler("addreseller",    cmd_addreseller))
+    app.add_handler(CommandHandler("removereseller", cmd_removereseller))
+    app.add_handler(CommandHandler("resellers",      cmd_resellers))
+    app.add_handler(CallbackQueryHandler(button))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
+    print("Bot is running... 🚀")
+    app.run_polling()
+        
