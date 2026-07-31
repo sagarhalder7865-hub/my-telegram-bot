@@ -8,12 +8,16 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
-# --- RENDER WEB SERVER (Port Error & Timeout Fix) ---
+# --- RENDER WEB SERVER (24/7 Active Keep-Alive System) ---
 class DummyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header("Content-type", "text/html")
         self.end_headers()
         self.wfile.write(b"Bot is active and running 24/7!")
+
+    def log_message(self, format, *args):
+        return
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
@@ -26,9 +30,14 @@ Thread(target=run_web_server, daemon=True).start()
 TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMIN_ID = 8546348748
 
-BOT_DIR  = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(BOT_DIR, "bot_data.db")
-QR_PATH  = os.path.join(BOT_DIR, "payment_qr.png")
+# Persistent Directory Check (Prevent Balance Reset on Restart)
+DATA_DIR = "/opt/render/project/src" if os.path.exists("/opt/render/project/src") else os.path.dirname(os.path.abspath(__file__))
+DB_PATH  = os.path.join(DATA_DIR, "bot_data.db")
+QR_PATH  = os.path.join(DATA_DIR, "payment_qr.png")
+
+if not os.path.exists(QR_PATH):
+    # Fallback to current directory if not found in root
+    QR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "payment_qr.png")
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -197,15 +206,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"💳 *Your Current Balance:* ₹{bal}{role}", parse_mode="Markdown")
 
     elif text == "➕Add Balance 💰" or text == "➕ Add Balance":
-        with open(QR_PATH, "rb") as f:
-            await update.message.reply_photo(
-                photo=f,
-                caption=(
-                    "💳 *Scan & Pay via PhonePe*\n\n"
-                    "UPI: `sagarhalder22@axl`\n\n"
-                    "✅ After payment, send the *screenshot* here\n"
-                    "⏰ Verify within 5 minutes"
-                ),
+        if os.path.exists(QR_PATH):
+            with open(QR_PATH, "rb") as f:
+                await update.message.reply_photo(
+                    photo=f,
+                    caption=(
+                        "💳 *Scan & Pay via PhonePe*\n\n"
+                        "UPI: `sagarhalder22@axl`\n\n"
+                        "✅ After payment, send the *screenshot* here\n"
+                        "⏰ Verify within 5 minutes"
+                    ),
+                    parse_mode="Markdown"
+                )
+        else:
+            await update.message.reply_text(
+                "💳 *Scan & Pay via PhonePe*\n\n"
+                "UPI: `sagarhalder22@axl`\n\n"
+                "✅ After payment, send the *screenshot* here\n"
+                "⏰ Verify within 5 minutes",
                 parse_mode="Markdown"
             )
 
