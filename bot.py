@@ -1,4 +1,4 @@
-import os
+mport os
 import json
 import asyncio
 import time
@@ -74,31 +74,33 @@ def init_db():
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         """)
+        
+        # Reset or update table defaults smoothly
         existing = db.execute("SELECT COUNT(*) FROM prices").fetchone()[0]
         if existing == 0:
             defaults = [
-                # KOS 8 Ball
-                ("kos_8b_1d",  "KOS 8 Ball", "1 Day",   180, 150),
-                ("kos_8b_7d",  "KOS 8 Ball", "7 Days",  500, 450),
-                ("kos_8b_15d", "KOS 8 Ball", "15 Days", 900, 800),
-                ("kos_8b_30d", "KOS 8 Ball", "30 Days", 1600, 1400),
+                # 8 Ball Pool (Plan code: b)
+                ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
+                ("b7",  "KOS 8 Ball", "7 Days",  500, 450),
+                ("b15", "KOS 8 Ball", "15 Days", 900, 800),
+                ("b30", "KOS 8 Ball", "30 Days", 1600, 1400),
                 
-                # KOS Carrom Pool
-                ("kos_cp_1d",  "KOS Carrom", "1 Day",   120, 100),
-                ("kos_cp_7d",  "KOS Carrom", "7 Days",  320, 280),
-                ("kos_cp_15d", "KOS Carrom", "15 Days", 500, 450),
-                ("kos_cp_30d", "KOS Carrom", "30 Days", 850, 750),
+                # Carrom Pool (Plan code: c)
+                ("c1",  "KOS Carrom", "1 Day",   120, 100),
+                ("c7",  "KOS Carrom", "7 Days",  320, 280),
+                ("c15", "KOS Carrom", "15 Days", 500, 450),
+                ("c30", "KOS Carrom", "30 Days", 850, 750),
                 
-                # KOS Free Fire
-                ("kos_ff_1d",  "KOS FreeFire Panel", "1 Day",   200, 180),
-                ("kos_ff_7d",  "KOS FreeFire Panel", "7 Days",  600, 500),
-                ("kos_ff_30d", "KOS FreeFire Panel", "30 Days", 1800, 1500),
+                # Free Fire Panel (Plan code: f)
+                ("f1",  "KOS Free Fire Panel", "1 Day",   200, 180),
+                ("f7",  "KOS Free Fire Panel", "7 Days",  600, 500),
+                ("f30", "KOS Free Fire Panel", "30 Days", 1800, 1500),
 
-                # Snake Engine
-                ("snk_8b_3d",  "Snake Engine", "3 Days",  180, 150),
-                ("snk_8b_10d", "Snake Engine", "10 Days", 450, 400),
-                ("snk_8b_30d", "Snake Engine", "30 Days", 900, 800),
-                ("snk_8b_90d", "Snake Engine", "90 Days", 2400, 2000),
+                # Snake Engine (Plan code: s)
+                ("s3",  "Snake Engine", "3 Days",  180, 150),
+                ("s10", "Snake Engine", "10 Days", 450, 400),
+                ("s30", "Snake Engine", "30 Days", 900, 800),
+                ("s90", "Snake Engine", "90 Days", 2400, 2000),
             ]
             db.executemany(
                 "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
@@ -186,13 +188,13 @@ def get_price(user_id, plan_id):
     return p["reseller"] if db_is_reseller(user_id) else p["regular"]
 
 def stock_text():
-    lines = ["📦 Stock Status:\n", "🔥 KOS Engine Keys:"]
-    for p in ["kos_8b_1d","kos_8b_7d","kos_8b_15d","kos_8b_30d","kos_cp_1d","kos_cp_7d","kos_cp_15d","kos_cp_30d","kos_ff_1d","kos_ff_7d","kos_ff_30d"]:
+    lines = ["🟢 STOCK STATUS 🟢\n", "🔥 KOS Engine Keys:"]
+    for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
         plan = db_get_plan(p)
         if plan:
             lines.append(f"  {plan['game']} ({plan['label']}) : {db_count_keys(p)}")
     lines.append("\n🐍 Snake Engine Keys:")
-    for p in ["snk_8b_3d","snk_8b_10d","snk_8b_30d","snk_8b_90d"]:
+    for p in ["s3","s10","s30","s90"]:
         plan = db_get_plan(p)
         if plan:
             lines.append(f"  {plan['game']} ({plan['label']}) : {db_count_keys(p)}")
@@ -203,28 +205,28 @@ payment_requests = {}
 PAYMENT_TIMEOUT  = 300
 
 def get_main_dashboard(uid, name):
-    role = "🏷 Reseller" if db_is_reseller(uid) else "👤 Customer"
+    role = "Reseller" if db_is_reseller(uid) else "Customer"
     bal  = db_get_balance(uid)
     last_buy = db_get_last_purchase(uid)
 
     inline_kbd = [
-        [InlineKeyboardButton("🔥𝗞𝗢𝗦 𝗘𝗻𝗴𝗶𝗻𝗲 𝗞𝗲𝘆🔑", callback_data="kos_menu"), InlineKeyboardButton("🐍𝗦𝗻𝗮𝗸𝗲 𝗘𝗻𝗴𝗶𝗻𝗲 𝗞𝗲𝘆🔑", callback_data="snk_menu")],
+        [InlineKeyboardButton("🔥𝗞𝗢𝗦 𝗘𝗻𝗴𝗶𝗻𝗲 Key🔑", callback_data="kos_menu"), InlineKeyboardButton("🐍𝗦𝗻𝗮𝗸𝗲 𝗘𝗻𝗴𝗶𝗻𝗲 Key🔑", callback_data="snk_menu")],
         [InlineKeyboardButton("💵 Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 Orders History", callback_data="orders_hist")],
-        [InlineKeyboardButton("🥰🔥Reseller Apply", url="https://t.me/happy_gamer2")]
+        [InlineKeyboardButton("🥰🔥Reseller Apply", callback_data="become_reseller")]
     ]
 
     msg = (
-        f"🔴🟢 HAPPY GAMER VIP OFFICIAL STORE 🟢🔴\n"
-        f"──────────────────────────────\n"
+        f"🟢🔴 HAPPY GAMER VIP OFFICIAL STORE 🔴🟢\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
         f"👋 Welcome: {name}\n"
         f"💳 Balance: ₹{bal}\n"
         f"👤 Status: {role}\n"
         f"📦 Last Purchase: {last_buy}\n"
-        f"──────────────────────────────\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"📖 How to Buy Key / কীভাবে কি কিনবেন:\n"
         f"1️⃣ Click 💵 Add Balance to deposit funds.\n"
         f"   (প্রথমে Add Balance এ গিয়ে পেমেন্ট করে ব্যালেন্স যোগ করুন)\n"
-        f"2️⃣ Select 🔥𝗞𝗢𝗦 𝗘𝗻𝗴𝗶𝗻𝗲 𝗞𝗲𝘆🔑 or 🐍𝗦𝗻𝗮𝗸𝗲 𝗘𝗻𝗴𝗶𝗻𝗲 𝗞𝗲𝘆🔑.\n"
+        f"2️⃣ Select 🔥𝗞𝗢𝗦 𝗘𝗻𝗴𝗶𝗻𝗲 Key🔑 or 🐍𝗦𝗻𝗮𝗸𝗲 𝗘𝗻𝗴𝗶𝗻𝗲 Key🔑.\n"
         f"   (তারপর আপনার পছন্দের গেম সিলেক্ট করুন)\n"
         f"3️⃣ Choose plan & tap Confirm Purchase for instant Key!\n"
         f"   (কনফার্ম করলেই ১ সেকেন্ডে কী পেয়ে যাবেন)"
@@ -243,7 +245,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.effective_user.first_name
     msg, inline_markup = get_main_dashboard(uid, name)
     await update.message.reply_text(msg, reply_markup=get_reply_keyboard())
-    await update.message.reply_text("👇 Select options below:", reply_markup=inline_markup)
+    await update.message.reply_text("👇 Choose Options Below:", reply_markup=inline_markup)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text    = update.message.text
@@ -261,8 +263,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif text in ["➕Add Balance 💰", "➕ Add Balance"]:
         caption = (
-            "💳 Scan & Pay via PhonePe / UPI\n"
-            "──────────────────────────────\n"
+            "💳 Scan & Pay via PhonePe / UPI\n━━━━━━━━━━━━━━━━━━━━━━\n"
             "UPI ID: sagarhalder22@axl\n\n"
             "✅ After paying, send the screenshot here.\n"
             "⏰ Verification inside 5 minutes!"
@@ -280,10 +281,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(stock_text())
 
     elif text == "📞 Admin Help":
-        await update.message.reply_text(
-            "📞 Admin Official: @happy_gamer2\n\n"
-            "💼 Contact Admin for Reseller Status or Custom Support!"
-        )
+        await cmd_help(update, context)
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query   = update.callback_query
@@ -304,57 +302,57 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("🔥 FF Panel", callback_data="kos_ff")],
             [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
         ]
-        await query.edit_message_text("🔥 KOS ENGINE - SELECT CATEGORY:", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text("🟢🔴 KOS ENGINE - SELECT CATEGORY: 🔴🟢", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     # KOS 8 BALL
     if query.data == "kos_8b":
-        p1 = get_price(user_id, "kos_8b_1d"); p7 = get_price(user_id, "kos_8b_7d")
-        p15 = get_price(user_id, "kos_8b_15d"); p30 = get_price(user_id, "kos_8b_30d")
+        p1 = get_price(user_id, "b1"); p7 = get_price(user_id, "b7")
+        p15 = get_price(user_id, "b15"); p30 = get_price(user_id, "b30")
         keyboard = [
-            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_kos_8b_1d"), InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_kos_8b_7d")],
-            [InlineKeyboardButton(f"⚡ Buy 15 Days (₹{p15})", callback_data="buy_kos_8b_15d"), InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_kos_8b_30d")],
+            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_b1"), InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_b7")],
+            [InlineKeyboardButton(f"⚡ Buy 15 Days (₹{p15})", callback_data="buy_b15"), InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_b30")],
             [InlineKeyboardButton("◀️ Back", callback_data="kos_menu")]
         ]
-        text = f"🎱 8 Ball Key Panel\n\nVIP Price List:\n──────────────────────────────\n🔥 1 Day  → ₹{p1}\n🔥 7 Days → ₹{p7}\n🔥 15 Days → ₹{p15}\n🔥 30 Days → ₹{p30}\n──────────────────────────────"
+        text = f"🎱 8 Ball Key Panel\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 1 Day  → ₹{p1}\n🔥 7 Days → ₹{p7}\n🔥 15 Days → ₹{p15}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     # KOS CARROM
     if query.data == "kos_cp":
-        p1 = get_price(user_id, "kos_cp_1d"); p7 = get_price(user_id, "kos_cp_7d")
-        p15 = get_price(user_id, "kos_cp_15d"); p30 = get_price(user_id, "kos_cp_30d")
+        p1 = get_price(user_id, "c1"); p7 = get_price(user_id, "c7")
+        p15 = get_price(user_id, "c15"); p30 = get_price(user_id, "c30")
         keyboard = [
-            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_kos_cp_1d"), InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_kos_cp_7d")],
-            [InlineKeyboardButton(f"⚡ Buy 15 Days (₹{p15})", callback_data="buy_kos_cp_15d"), InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_kos_cp_30d")],
+            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_c1"), InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_c7")],
+            [InlineKeyboardButton(f"⚡ Buy 15 Days (₹{p15})", callback_data="buy_c15"), InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_c30")],
             [InlineKeyboardButton("◀️ Back", callback_data="kos_menu")]
         ]
-        text = f"🎯 Carrom Pool Key Panel\n\nVIP Price List:\n──────────────────────────────\n🔥 1 Day  → ₹{p1}\n🔥 7 Days → ₹{p7}\n🔥 15 Days → ₹{p15}\n🔥 30 Days → ₹{p30}\n──────────────────────────────"
+        text = f"🎯 Carrom Pool Key Panel\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 1 Day  → ₹{p1}\n🔥 7 Days → ₹{p7}\n🔥 15 Days → ₹{p15}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     # KOS FREE FIRE
     if query.data == "kos_ff":
-        p1 = get_price(user_id, "kos_ff_1d"); p7 = get_price(user_id, "kos_ff_7d"); p30 = get_price(user_id, "kos_ff_30d")
+        p1 = get_price(user_id, "f1"); p7 = get_price(user_id, "f7"); p30 = get_price(user_id, "f30")
         keyboard = [
-            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_kos_ff_1d"), InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_kos_ff_7d")],
-            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_kos_ff_30d")],
+            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_f1"), InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_f7")],
+            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_f30")],
             [InlineKeyboardButton("◀️ Back", callback_data="kos_menu")]
         ]
-        text = f"🔥 FF Panel (Free Fire)\n\nVIP Price List:\n──────────────────────────────\n🔥 1 Day  → ₹{p1}\n🔥 7 Days → ₹{p7}\n🔥 30 Days → ₹{p30}\n──────────────────────────────"
+        text = f"🔥 FF Panel (Free Fire)\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 1 Day  → ₹{p1}\n🔥 7 Days → ₹{p7}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     # --- SNAKE ENGINE MENU ---
     if query.data == "snk_menu":
-        p3 = get_price(user_id, "snk_8b_3d"); p10 = get_price(user_id, "snk_8b_10d")
-        p30 = get_price(user_id, "snk_8b_30d"); p90 = get_price(user_id, "snk_8b_90d")
+        p3 = get_price(user_id, "s3"); p10 = get_price(user_id, "s10")
+        p30 = get_price(user_id, "s30"); p90 = get_price(user_id, "s90")
         keyboard = [
-            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_snk_8b_3d"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_snk_8b_10d")],
-            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_snk_8b_30d"), InlineKeyboardButton(f"⚡ Buy 90 Days (₹{p90})", callback_data="buy_snk_8b_90d")],
+            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_s3"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_s10")],
+            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_s30"), InlineKeyboardButton(f"⚡ Buy 90 Days (₹{p90})", callback_data="buy_s90")],
             [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
         ]
-        text = f"🐍 Snake Engine\n\nVIP Price List:\n──────────────────────────────\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n🔥 90 Days → ₹{p90}\n──────────────────────────────"
+        text = f"🐍 Snake Engine Panel\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n🔥 90 Days → ₹{p90}\n━━━━━━━━━━━━━━━━━━━━━━"
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -372,7 +370,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ Cancel Order", callback_data="back_main")]
         ]
         await query.edit_message_text(
-            f"🧾 ORDER CONFIRMATION\n──────────────────────────────\n🎮 Item: {plan['game']}\n⏱ Plan: {plan['label']}\n💰 Price: ₹{price}\n──────────────────────────────\nPress confirm to deduct balance and receive your key instantly.",
+            f"🧾 ORDER CONFIRMATION\n━━━━━━━━━━━━━━━━━━━━━━\n🎮 Item: {plan['game']}\n⏱ Plan: {plan['label']}\n💰 Price: ₹{price}\n━━━━━━━━━━━━━━━━━━━━━━\nPress confirm to deduct balance and receive your key instantly.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
@@ -399,7 +397,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pending_orders.pop(user_id, None)
 
         await query.edit_message_text(
-            f"🎉 KEY PURCHASE SUCCESSFUL!\n──────────────────────────────\n🎮 Item: {plan['game']} ({plan['label']})\n💰 Amount Paid: ₹{price}\n\n🔑 Your VIP Key:\n{key}\n──────────────────────────────\nThank you for buying from HAPPY GAMER STORE!"
+            f"🎉 PURCHASE SUCCESSFUL!\n━━━━━━━━━━━━━━━━━━━━━━\n🎮 Item: {plan['game']} ({plan['label']})\n💰 Amount Paid: ₹{price}\n\n🔑 Your VIP Key:\n{key}\n━━━━━━━━━━━━━━━━━━━━━━\nThank you for buying from HAPPY GAMER STORE!"
         )
 
         try:
@@ -416,16 +414,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not orders:
             await query.edit_message_text("📜 Orders History\n\nYou haven't purchased any keys yet!", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
             return
-        msg = "📜 YOUR ORDERS HISTORY (LAST 10):\n──────────────────────────────\n"
+        msg = "📜 YOUR ORDERS HISTORY (LAST 10):\n━━━━━━━━━━━━━━━━━━━━━━\n"
         for o in orders:
-            msg += f"🎮 {o['game']} ({o['plan_label']})\n💰 Price: ₹{o['price']}\n🔑 Key: {o['key_delivered']}\n🗓 Date: {o['timestamp']}\n──────────────────────────────\n"
+            msg += f"🎮 {o['game']} ({o['plan_label']})\n💰 Price: ₹{o['price']}\n🔑 Key: {o['key_delivered']}\n🗓 Date: {o['timestamp']}\n━━━━━━━━━━━━━━━━━━━━━━\n"
         await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
         return
 
     # --- ADD BALANCE ---
     if query.data == "add_bal":
         caption = (
-            "💳 Scan & Pay via PhonePe / UPI\n──────────────────────────────\n"
+            "💳 Scan & Pay via PhonePe / UPI\n━━━━━━━━━━━━━━━━━━━━━━\n"
             "UPI ID: sagarhalder22@axl\n\n"
             "✅ After paying, send the screenshot in this chat.\n"
             "⏰ Admin will verify and add balance quickly!"
@@ -435,6 +433,17 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_photo(chat_id=user_id, photo=f, caption=caption)
         else:
             await context.bot.send_message(chat_id=user_id, text=caption)
+        return
+
+    # --- BECOME RESELLER ---
+    if query.data == "become_reseller":
+        await query.edit_message_text(
+            "💎 BECOME AN OFFICIAL RESELLER\n━━━━━━━━━━━━━━━━━━━━━━\n"
+            "Get discounted VIP prices on all hack keys!\n\n"
+            "📩 Contact Admin to activate Reseller status:\n"
+            "👤 Admin: @happy_gamer2",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]])
+        )
         return
 
     # --- PAYMENT VERIFICATION HANDLERS ---
@@ -469,7 +478,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_obj = query.from_user
         name     = user_obj.full_name
         username = f"@{user_obj.username}" if user_obj.username else "No username"
-        role_lbl = "🏷 Reseller" if db_is_reseller(cust_id) else "👤 Customer"
+        role_lbl = "Reseller" if db_is_reseller(cust_id) else "Customer"
         await query.edit_message_caption("⏳ Verifying...\nAdmin is reviewing your payment.")
         
         amounts = [100, 150, 180, 200, 300, 450, 500, 800, 900, 1000, 1500, 2000]
@@ -508,16 +517,22 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✅ Verify Payment", callback_data=f"verify_{user_id}")]])
     )
 
-# --- ADMIN COMMANDS ---
+# --- ADMIN COMMANDS LIST ---
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
-    await update.message.reply_text(
+    help_text = (
         "🛠 Admin Commands\n\n"
-        "/add <id> <amount>\n"
-        "/addkey <plan_code> <key>\n"
-        "/setprice <plan_code> <regular> <reseller>\n"
-        "/addreseller <id> | /removereseller <id>"
+        "Balance:\n/add <id> <amount>\n\n"
+        "Keys:\n/addkey <plan> <key>\n/stock\n/deliver <id> <key>\n\n"
+        "Prices:\n/setprice <plan> <regular> <reseller>\n/prices\n\n"
+        "Resellers:\n/addreseller <id>\n/removereseller <id>\n/resellers\n\n"
+        "Plan codes:\n"
+        "b1 8B 1D | b7 8B 7D | b15 8B 15D | b30 8B 30D\n"
+        "c1 Carrom 1D | c7 Carrom 7D | c15 Carrom 15D | c30 Carrom 30D\n"
+        "f1 FF 1D | f7 FF 7D | f30 FF 30D\n"
+        "s3 SNK 3D | s10 SNK 10D | s30 SNK 30D | s90 SNK 90D"
     )
+    await update.message.reply_text(help_text)
 
 async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
@@ -577,6 +592,5 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("VIP Bot Clean UI Running... 🚀")
+    print("VIP Bot UI Running... 🚀")
     app.run_polling()
-        
