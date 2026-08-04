@@ -85,9 +85,9 @@ def init_db():
             
             # KOS Carrom
             ("c1",  "KOS Carrom", "1 Day",   120, 100),
-            ("c7",  "KOS Carrom", "7 Days",  320, 280),
-            ("c15", "KOS Carrom", "15 Days", 500, 450),
-            ("c30", "KOS Carrom", "30 Days", 850, 750),
+            ("c7",  "KOS Carrom", "7 Days",  320, 230),
+            ("c15", "KOS Carrom", "15 Days", 500, 390),
+            ("c30", "KOS Carrom", "30 Days", 850, 670),
             
             # KOS FreeFire
             ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
@@ -102,15 +102,15 @@ def init_db():
 
             # Snake Engine (Carrom)
             ("snkc_3d",  "Snake Engine", "3 Days",  180, 150),
-            ("snkc_10d", "Snake Engine", "10 Days", 450, 400),
-            ("snkc_30d", "Snake Engine", "30 Days", 900, 800),
+            ("snkc_10d", "Snake Engine", "10 Days", 450, 370),
+            ("snkc_30d", "Snake Engine", "30 Days", 900, 790),
 
             # Blitz Engine
             ("bltz_1d",  "Blitz Engine 🔥", "1 Day",     50, 40),
-            ("bltz_3d",  "Blitz Engine 🔥", "3 Days",    120, 100),
-            ("bltz_7d",  "Blitz Engine 🔥", "7 Days",    200, 180),
-            ("bltz_10d", "Blitz Engine 🔥", "10 Days",   300, 270),
-            ("bltz_15d", "Blitz Engine 🔥", "15 Days",   350, 310),
+            ("bltz_3d",  "Blitz Engine 🔥", "3 Days",    120, 80),
+            ("bltz_7d",  "Blitz Engine 🔥", "7 Days",    200, 170),
+            ("bltz_10d", "Blitz Engine 🔥", "10 Days",   300, 260),
+            ("bltz_15d", "Blitz Engine 🔥", "15 Days",   350, 290),
             ("bltz_30d", "Blitz Engine 🔥", "30 Days",   500, 450),
             ("bltz_90d", "Blitz Engine 🔥", "90 Days",   1000, 900),
             ("bltz_lt",  "Blitz Engine 🔥", "Life Time", 0, 0),
