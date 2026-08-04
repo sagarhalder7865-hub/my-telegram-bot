@@ -8,7 +8,18 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
-# --- RENDER WEB SERVER (24/7 Keep-Alive) ---
+TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
+ADMIN_ID = 8546348748
+ADMIN_USERNAME = "@happy_gamer2"
+
+DATA_DIR = "/opt/render/project/src" if os.path.exists("/opt/render/project/src") else os.path.dirname(os.path.abspath(__file__))
+DB_PATH  = os.path.join(DATA_DIR, "bot_data.db")
+QR_PATH  = os.path.join(DATA_DIR, "payment_qr.png")
+
+if not os.path.exists(QR_PATH):
+    QR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "payment_qr.png")
+
+# --- RENDER WEB SERVER ---
 class DummyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -25,17 +36,6 @@ def run_web_server():
     server.serve_forever()
 
 Thread(target=run_web_server, daemon=True).start()
-# --------------------------------------------------
-
-TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
-ADMIN_ID = 8546348748
-
-DATA_DIR = "/opt/render/project/src" if os.path.exists("/opt/render/project/src") else os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(DATA_DIR, "bot_data.db")
-QR_PATH  = os.path.join(DATA_DIR, "payment_qr.png")
-
-if not os.path.exists(QR_PATH):
-    QR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "payment_qr.png")
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -75,7 +75,6 @@ def init_db():
             );
         """)
         
-        # Fresh Prices Setup
         db.execute("DELETE FROM prices")
         defaults = [
             # KOS 8 Ball
@@ -101,15 +100,20 @@ def init_db():
             ("bit90", "Bitaim ⚡", "3 Months",  340, 300),
             ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1700),
 
-            # Snake Engine 8BP
-            ("snk8_3d",  "Snake Engine 8BP", "3 Days",  320, 290),
-            ("snk8_10d", "Snake Engine 8BP", "10 Days", 800, 720),
-            ("snk8_30d", "Snake Engine 8BP", "30 Days", 1450, 1300),
+            # Snake Engine (Carrom)
+            ("snkc_3d",  "Snake Engine", "3 Days",  180, 150),
+            ("snkc_10d", "Snake Engine", "10 Days", 450, 400),
+            ("snkc_30d", "Snake Engine", "30 Days", 900, 800),
 
-            # Snake Carrom
-            ("snkc_3d",  "Snake Carrom", "3 Days",  180, 150),
-            ("snkc_10d", "Snake Carrom", "10 Days", 450, 400),
-            ("snkc_30d", "Snake Carrom", "30 Days", 900, 800),
+            # Blitz Engine
+            ("bltz_1d",  "Blitz Engine 🔥", "1 Day",     50, 40),
+            ("bltz_3d",  "Blitz Engine 🔥", "3 Days",    120, 100),
+            ("bltz_7d",  "Blitz Engine 🔥", "7 Days",    200, 180),
+            ("bltz_10d", "Blitz Engine 🔥", "10 Days",   300, 270),
+            ("bltz_15d", "Blitz Engine 🔥", "15 Days",   350, 310),
+            ("bltz_30d", "Blitz Engine 🔥", "30 Days",   500, 450),
+            ("bltz_90d", "Blitz Engine 🔥", "90 Days",   1000, 900),
+            ("bltz_lt",  "Blitz Engine 🔥", "Life Time", 0, 0),
         ]
         db.executemany(
             "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
@@ -206,14 +210,14 @@ def stock_text():
     for p in ["bit7","bit30","bit90","bitlt"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  {plan['label']:10} : {db_count_keys(p)}")
-        
-    lines.append("\n🐍 Snake Engine 8BP:")
-    for p in ["snk8_3d","snk8_10d","snk8_30d"]:
+
+    lines.append("\n🐍 Snake Engine:")
+    for p in ["snkc_3d","snkc_10d","snkc_30d"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  {plan['label']:10} : {db_count_keys(p)}")
 
-    lines.append("\n🎯 Snake Carrom:")
-    for p in ["snkc_3d","snkc_10d","snkc_30d"]:
+    lines.append("\n☠️ Blitz Engine 🔥:")
+    for p in ["bltz_1d","bltz_3d","bltz_7d","bltz_10d","bltz_15d","bltz_30d","bltz_90d","bltz_lt"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  {plan['label']:10} : {db_count_keys(p)}")
     return "\n".join(lines)
@@ -228,16 +232,17 @@ def price_list_text():
     for p in ["bit7","bit30","bit90","bitlt"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  Bitaim {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
-        
-    lines.append("\n🐍 Snake Engine 8BP:")
-    for p in ["snk8_3d","snk8_10d","snk8_30d"]:
-        plan = db_get_plan(p)
-        if plan: lines.append(f"  Snake 8BP {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
 
-    lines.append("\n🎯 Snake Carrom:")
+    lines.append("\n🐍 Snake Engine:")
     for p in ["snkc_3d","snkc_10d","snkc_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  Snake Carrom {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+        if plan: lines.append(f"  Snake Engine {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+
+    lines.append("\n☠️ Blitz Engine 🔥:")
+    for p in ["bltz_1d","bltz_3d","bltz_7d","bltz_10d","bltz_15d","bltz_30d","bltz_90d"]:
+        plan = db_get_plan(p)
+        if plan: lines.append(f"  Blitz {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+    lines.append(f"  Blitz Life Time → Contact Admin ({ADMIN_USERNAME})")
     return "\n".join(lines)
 
 pending_orders   = {}
@@ -252,7 +257,7 @@ def get_main_dashboard(uid, name):
 
     inline_kbd = [
         [InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu"), InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu")],
-        [InlineKeyboardButton("🐍 Snake Engine 8BP", callback_data="snk8_menu"), InlineKeyboardButton("🎯 Snake Carrom", callback_data="snkc_menu")],
+        [InlineKeyboardButton("🐍 Snake Engine", callback_data="snkc_menu"), InlineKeyboardButton("☠️ Blitz Engine 🔥", callback_data="blitz_menu")],
         [InlineKeyboardButton("💵 Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 Orders History", callback_data="orders_hist")],
         [InlineKeyboardButton("🥰🔥 Reseller Apply", callback_data="become_reseller")]
     ]
@@ -425,19 +430,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # SNAKE ENGINE 8BP MENU
-    if query.data == "snk8_menu":
-        p3 = get_price(user_id, "snk8_3d"); p10 = get_price(user_id, "snk8_10d"); p30 = get_price(user_id, "snk8_30d")
-        keyboard = [
-            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_snk8_3d"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_snk8_10d")],
-            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_snk8_30d")],
-            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
-        ]
-        text = f"🐍 Snake Engine 8BP\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-        return
-
-    # SNAKE CARROM MENU
+    # SNAKE ENGINE (CARROM) MENU
     if query.data == "snkc_menu":
         p3 = get_price(user_id, "snkc_3d"); p10 = get_price(user_id, "snkc_10d"); p30 = get_price(user_id, "snkc_30d")
         keyboard = [
@@ -445,13 +438,41 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_snkc_30d")],
             [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
         ]
-        text = f"🎯 Snake Carrom\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
+        text = f"🐍 Snake Engine\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    # BLITZ ENGINE MENU
+    if query.data == "blitz_menu":
+        p1 = get_price(user_id, "bltz_1d"); p3 = get_price(user_id, "bltz_3d"); p7 = get_price(user_id, "bltz_7d")
+        p10 = get_price(user_id, "bltz_10d"); p15 = get_price(user_id, "bltz_15d"); p30 = get_price(user_id, "bltz_30d"); p90 = get_price(user_id, "bltz_90d")
+        keyboard = [
+            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_bltz_1d"), InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_bltz_3d")],
+            [InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_bltz_7d"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_bltz_10d")],
+            [InlineKeyboardButton(f"⚡ Buy 15 Days (₹{p15})", callback_data="buy_bltz_15d"), InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_bltz_30d")],
+            [InlineKeyboardButton(f"⚡ Buy 90 Days (₹{p90})", callback_data="buy_bltz_90d"), InlineKeyboardButton("👑 Life Time", callback_data="buy_bltz_lt")],
+            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
+        ]
+        text = f"☠️ Blitz Engine 🔥\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 1 Day   → ₹{p1}\n🔥 3 Days  → ₹{p3}\n🔥 7 Days  → ₹{p7}\n🔥 10 Days → ₹{p10}\n🔥 15 Days → ₹{p15}\n🔥 30 Days → ₹{p30}\n🔥 90 Days → ₹{p90}\n👑 Life Time → Contact Admin\n━━━━━━━━━━━━━━━━━━━━━━"
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     # --- BUYING & CONFIRMATION ---
     if query.data.startswith("buy_"):
         plan_id = query.data.replace("buy_", "")
+
+        # Blitz Lifetime Redirect Logic
+        if plan_id == "bltz_lt":
+            msg = (
+                f"👑 *BLITZ ENGINE LIFE TIME*\n━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"লাইফটাইম কী কেনার জন্য সরাসরি এডমিনের সাথে যোগাযোগ করুন।\n\n"
+                f"👤 Admin Username: {ADMIN_USERNAME}\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━"
+            )
+            keyboard = [[InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}")], [InlineKeyboardButton("◀️ Back", callback_data="blitz_menu")]]
+            await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+            return
+
         plan = db_get_plan(plan_id)
         if not plan:
             await query.answer("❌ Invalid plan", show_alert=True)
@@ -483,13 +504,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if "bit" in plan_id:
             awaiting_gmail[user_id] = plan_id
-            await query.edit_message_text(
-                "📧 GMAIL REQUIRED!\n━━━━━━━━━━━━━━━━━━━━━━\nPlease type & send your Gmail ID in this chat to activate your Bitaim Hack account."
-            )
+            await query.edit_message_text("📧 GMAIL REQUIRED!\n━━━━━━━━━━━━━━━━━━━━━━\nPlease type & send your Gmail ID in this chat to activate your Bitaim Hack account.")
             return
 
         if db_count_keys(plan_id) == 0:
-            await query.edit_message_text("🔴 OUT OF STOCK!\nAdmin will restock soon. Contact @happy_gamer2")
+            await query.edit_message_text(f"🔴 OUT OF STOCK!\nAdmin will restock soon. Contact {ADMIN_USERNAME}")
             return
 
         db_set_balance(user_id, bal - price)
@@ -525,8 +544,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption = (
             "💳 Scan & Pay via PhonePe / UPI\n━━━━━━━━━━━━━━━━━━━━━━\n"
             "UPI ID: sagarhalder22@axl\n\n"
-            "✅ After paying, send the screenshot in this chat.\n"
-            "⏰ Admin will verify and add balance quickly!"
+            "✅ After paying, send the screenshot here.\n"
+            "⏰ Verification inside 5 minutes!"
         )
         if os.path.exists(QR_PATH):
             with open(QR_PATH, "rb") as f:
@@ -538,10 +557,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- BECOME RESELLER ---
     if query.data == "become_reseller":
         await query.edit_message_text(
-            "💎 BECOME AN OFFICIAL RESELLER\n━━━━━━━━━━━━━━━━━━━━━━\n"
-            "Get discounted VIP prices on all hack keys!\n\n"
-            "📩 Contact Admin to activate Reseller status:\n"
-            "👤 Admin: @happy_gamer2",
+            f"💎 BECOME AN OFFICIAL RESELLER\n━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Get discounted VIP prices on all hack keys!\n\n"
+            f"📩 Contact Admin to activate Reseller status:\n"
+            f"👤 Admin: {ADMIN_USERNAME}",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]])
         )
         return
@@ -581,7 +600,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         role_lbl = "Reseller" if db_is_reseller(cust_id) else "Customer"
         await query.edit_message_caption("⏳ Verifying...\nAdmin is reviewing your payment.")
         
-        amounts = [60, 100, 150, 160, 180, 200, 300, 340, 450, 500, 800, 900, 1000, 1450, 1860]
+        amounts = [50, 60, 100, 120, 150, 160, 180, 200, 300, 340, 350, 450, 500, 800, 900, 1000, 1450, 1860]
         row, kbd = [], []
         for amt in amounts:
             row.append(InlineKeyboardButton(f"✅ ₹{amt}", callback_data=f"pay_{cust_id}_{amt}"))
@@ -617,7 +636,7 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✅ Verify Payment", callback_data=f"verify_{user_id}")]])
     )
 
-# --- ADMIN COMMANDS LIST (MONOSPACE / CODE BOX FORMAT) ---
+# --- ADMIN COMMANDS LIST ---
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
     help_text = (
@@ -627,12 +646,12 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Prices:\n/setprice <plan> <regular> <reseller>\n/prices\n\n"
         "Resellers:\n/addreseller <id>\n/removereseller <id>\n/resellers\n\n"
         "Plan codes:\n"
-        "b1 8B 1D | b7 8B 7D | b15 8B 15D | b30 8B 30D\n"
-        "c1 Carrom 1D | c7 Carrom 7D | c15 Carrom 15D | c30 Carrom 30D\n"
-        "f1 FF 1D | f7 FF 7D | f30 FF 30D\n"
-        "bit7 Bitaim 7D | bit30 Bitaim 30D | bit90 Bitaim 3M | bitlt Bitaim LifeTime\n"
-        "snk8_3d Snake 8BP 3D | snk8_10d Snake 8BP 10D | snk8_30d Snake 8BP 30D\n"
-        "snkc_3d Snake Carrom 3D | snkc_10d Snake Carrom 10D | snkc_30d Snake Carrom 30D"
+        "b1, b7, b15, b30 (KOS 8B)\n"
+        "c1, c7, c15, c30 (KOS Carrom)\n"
+        "f1, f7, f30 (KOS FF)\n"
+        "bit7, bit30, bit90, bitlt (Bitaim)\n"
+        "snkc_3d, snkc_10d, snkc_30d (Snake Carrom)\n"
+        "bltz_1d, bltz_3d, bltz_7d, bltz_10d, bltz_15d, bltz_30d, bltz_90d (Blitz Engine)"
     )
     await update.message.reply_text(f"```\n{help_text}\n```", parse_mode="Markdown")
 
@@ -643,8 +662,7 @@ async def cmd_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg_text  = " ".join(context.args[1:])
         await context.bot.send_message(chat_id=target_id, text=f"💬 Message from Admin:\n\n{msg_text}")
         await update.message.reply_text(f"✅ Message sent to {target_id}")
-    except Exception:
-        await update.message.reply_text("Usage: /reply <user_id> <message>")
+    except Exception: await update.message.reply_text("Usage: /reply <user_id> <message>")
 
 async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
