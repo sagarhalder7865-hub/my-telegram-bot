@@ -86,7 +86,7 @@ def init_db():
             # KOS Carrom
             ("c1",  "KOS Carrom", "1 Day",   120, 100),
             ("c7",  "KOS Carrom", "7 Days",  320, 230),
-            ("c15", "KOS Carrom", "15 Days", 500, 390),
+            ("c15", "KOS Carrom", "15 Days", 500, 400),
             ("c30", "KOS Carrom", "30 Days", 850, 670),
             
             # KOS FreeFire
@@ -95,13 +95,13 @@ def init_db():
             ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
 
             # Bitaim Hack
-            ("bit7",  "Bitaim ⚡", "7 Days",    60, 50),
+            ("bit7",  "Bitaim ⚡", "7 Days",    65, 55),
             ("bit30", "Bitaim ⚡", "30 Days",   160, 140),
             ("bit90", "Bitaim ⚡", "3 Months",  340, 300),
             ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1700),
 
             # Snake Engine (Carrom)
-            ("snkc_3d",  "Snake Engine", "3 Days",  180, 150),
+            ("snkc_3d",  "Snake Engine", "3 Days",  180, 160),
             ("snkc_10d", "Snake Engine", "10 Days", 450, 370),
             ("snkc_30d", "Snake Engine", "30 Days", 900, 790),
 
