@@ -85,9 +85,9 @@ def init_db():
             
             # KOS Carrom
             ("c1",  "KOS Carrom", "1 Day",   120, 100),
-            ("c7",  "KOS Carrom", "7 Days",  320, 230),
-            ("c15", "KOS Carrom", "15 Days", 500, 400),
-            ("c30", "KOS Carrom", "30 Days", 850, 670),
+            ("c7",  "KOS Carrom", "7 Days",  320, 280),
+            ("c15", "KOS Carrom", "15 Days", 500, 450),
+            ("c30", "KOS Carrom", "30 Days", 850, 750),
             
             # KOS FreeFire
             ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
@@ -95,15 +95,15 @@ def init_db():
             ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
 
             # Bitaim Hack
-            ("bit7",  "Bitaim ⚡", "7 Days",    65, 55),
+            ("bit7",  "Bitaim ⚡", "7 Days",    60, 50),
             ("bit30", "Bitaim ⚡", "30 Days",   160, 140),
             ("bit90", "Bitaim ⚡", "3 Months",  340, 300),
             ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1700),
 
             # Snake Engine (Carrom)
-            ("snkc_3d",  "Snake Engine", "3 Days",  180, 160),
-            ("snkc_10d", "Snake Engine", "10 Days", 450, 370),
-            ("snkc_30d", "Snake Engine", "30 Days", 900, 790),
+            ("snkc_3d",  "Snake Engine", "3 Days",  180, 150),
+            ("snkc_10d", "Snake Engine", "10 Days", 450, 400),
+            ("snkc_30d", "Snake Engine", "30 Days", 900, 800),
         ]
         db.executemany(
             "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
@@ -205,11 +205,6 @@ def stock_text():
     for p in ["snkc_3d","snkc_10d","snkc_30d"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  {plan['label']:10} : {db_count_keys(p)}")
-
-    lines.append("\n☠️ Blitz Engine 🔥:")
-    for p in ["bltz_1d","bltz_3d","bltz_7d","bltz_10d","bltz_15d","bltz_30d","bltz_90d","bltz_lt"]:
-        plan = db_get_plan(p)
-        if plan: lines.append(f"  {plan['label']:10} : {db_count_keys(p)}")
     return "\n".join(lines)
 
 def price_list_text():
@@ -227,12 +222,6 @@ def price_list_text():
     for p in ["snkc_3d","snkc_10d","snkc_30d"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  Snake Engine {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
-
-    lines.append("\n☠️ Blitz Engine 🔥:")
-    for p in ["bltz_1d","bltz_3d","bltz_7d","bltz_10d","bltz_15d","bltz_30d","bltz_90d"]:
-        plan = db_get_plan(p)
-        if plan: lines.append(f"  Blitz {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
-    lines.append(f"  Blitz Life Time → Contact Admin ({ADMIN_USERNAME})")
     return "\n".join(lines)
 
 pending_orders   = {}
@@ -247,7 +236,7 @@ def get_main_dashboard(uid, name):
 
     inline_kbd = [
         [InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu"), InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu")],
-        [InlineKeyboardButton("🐍 Snake Engine", callback_data="snkc_menu"), InlineKeyboardButton("☠️ Blitz Engine 🔥", callback_data="blitz_menu")],
+        [InlineKeyboardButton("🐍 Snake Engine", callback_data="snkc_menu")],
         [InlineKeyboardButton("💵 Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 Orders History", callback_data="orders_hist")],
         [InlineKeyboardButton("🥰🔥 Reseller Apply", callback_data="become_reseller")]
     ]
@@ -432,37 +421,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # BLITZ ENGINE MENU
-    if query.data == "blitz_menu":
-        p1 = get_price(user_id, "bltz_1d"); p3 = get_price(user_id, "bltz_3d"); p7 = get_price(user_id, "bltz_7d")
-        p10 = get_price(user_id, "bltz_10d"); p15 = get_price(user_id, "bltz_15d"); p30 = get_price(user_id, "bltz_30d"); p90 = get_price(user_id, "bltz_90d")
-        keyboard = [
-            [InlineKeyboardButton(f"⚡ Buy 1 Day (₹{p1})", callback_data="buy_bltz_1d"), InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_bltz_3d")],
-            [InlineKeyboardButton(f"⚡ Buy 7 Days (₹{p7})", callback_data="buy_bltz_7d"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_bltz_10d")],
-            [InlineKeyboardButton(f"⚡ Buy 15 Days (₹{p15})", callback_data="buy_bltz_15d"), InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_bltz_30d")],
-            [InlineKeyboardButton(f"⚡ Buy 90 Days (₹{p90})", callback_data="buy_bltz_90d"), InlineKeyboardButton("👑 Life Time", callback_data="buy_bltz_lt")],
-            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
-        ]
-        text = f"☠️ Blitz Engine 🔥\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 1 Day   → ₹{p1}\n🔥 3 Days  → ₹{p3}\n🔥 7 Days  → ₹{p7}\n🔥 10 Days → ₹{p10}\n🔥 15 Days → ₹{p15}\n🔥 30 Days → ₹{p30}\n🔥 90 Days → ₹{p90}\n👑 Life Time → Contact Admin\n━━━━━━━━━━━━━━━━━━━━━━"
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-        return
-
     # --- BUYING & CONFIRMATION ---
     if query.data.startswith("buy_"):
         plan_id = query.data.replace("buy_", "")
-
-        # Blitz Lifetime Redirect Logic
-        if plan_id == "bltz_lt":
-            msg = (
-                f"👑 *BLITZ ENGINE LIFE TIME*\n━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"লাইফটাইম কী কেনার জন্য সরাসরি এডমিনের সাথে যোগাযোগ করুন।\n\n"
-                f"👤 Admin Username: {ADMIN_USERNAME}\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━"
-            )
-            keyboard = [[InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}")], [InlineKeyboardButton("◀️ Back", callback_data="blitz_menu")]]
-            await query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
-            return
-
         plan = db_get_plan(plan_id)
         if not plan:
             await query.answer("❌ Invalid plan", show_alert=True)
@@ -640,8 +601,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "c1, c7, c15, c30 (KOS Carrom)\n"
         "f1, f7, f30 (KOS FF)\n"
         "bit7, bit30, bit90, bitlt (Bitaim)\n"
-        "snkc_3d, snkc_10d, snkc_30d (Snake Carrom)\n"
-        "bltz_1d, bltz_3d, bltz_7d, bltz_10d, bltz_15d, bltz_30d, bltz_90d (Blitz Engine)"
+        "snkc_3d, snkc_10d, snkc_30d (Snake Carrom)"
     )
     await update.message.reply_text(f"```\n{help_text}\n```", parse_mode="Markdown")
 
