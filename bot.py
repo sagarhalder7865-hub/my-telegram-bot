@@ -104,16 +104,6 @@ def init_db():
             ("snkc_3d",  "Snake Engine", "3 Days",  180, 160),
             ("snkc_10d", "Snake Engine", "10 Days", 450, 370),
             ("snkc_30d", "Snake Engine", "30 Days", 900, 790),
-
-            # Blitz Engine
-            ("bltz_1d",  "Blitz Engine 🔥", "1 Day",     50, 40),
-            ("bltz_3d",  "Blitz Engine 🔥", "3 Days",    120, 80),
-            ("bltz_7d",  "Blitz Engine 🔥", "7 Days",    200, 170),
-            ("bltz_10d", "Blitz Engine 🔥", "10 Days",   300, 260),
-            ("bltz_15d", "Blitz Engine 🔥", "15 Days",   350, 290),
-            ("bltz_30d", "Blitz Engine 🔥", "30 Days",   500, 450),
-            ("bltz_90d", "Blitz Engine 🔥", "90 Days",   1000, 900),
-            ("bltz_lt",  "Blitz Engine 🔥", "Life Time", 0, 0),
         ]
         db.executemany(
             "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
