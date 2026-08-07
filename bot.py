@@ -75,7 +75,6 @@ def init_db():
             );
         """)
         
-        db.execute("DELETE FROM prices")
         defaults = [
             # KOS 8 Ball
             ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
@@ -85,8 +84,8 @@ def init_db():
             
             # KOS Carrom
             ("c1",  "KOS Carrom", "1 Day",   120, 100),
-            ("c7",  "KOS Carrom", "7 Days",  320, 280),
-            ("c15", "KOS Carrom", "15 Days", 500, 450),
+            ("c7",  "KOS Carrom", "7 Days",  300, 280),
+            ("c15", "KOS Carrom", "15 Days", 490, 450),
             ("c30", "KOS Carrom", "30 Days", 850, 750),
             
             # KOS FreeFire
@@ -95,20 +94,42 @@ def init_db():
             ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
 
             # Bitaim Hack
-            ("bit7",  "Bitaim ⚡", "7 Days",    60, 50),
-            ("bit30", "Bitaim ⚡", "30 Days",   160, 140),
-            ("bit90", "Bitaim ⚡", "3 Months",  340, 300),
-            ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1700),
+            ("bit7",  "Bitaim ⚡", "7 Days",    65, 60),
+            ("bit30", "Bitaim ⚡", "30 Days",   165, 160),
+            ("bit90", "Bitaim ⚡", "3 Months",  340, 330),
+            ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1790),
 
-            # Snake Engine (Carrom)
-            ("snkc_3d",  "Snake Engine", "3 Days",  180, 150),
-            ("snkc_10d", "Snake Engine", "10 Days", 450, 400),
-            ("snkc_30d", "Snake Engine", "30 Days", 900, 800),
+            # Snake Carrom
+            ("snkc_3d",  "Snake Carrom", "3 Days",  190, 170),
+            ("snkc_10d", "Snake Carrom", "10 Days", 450, 410),
+            ("snkc_30d", "Snake Carrom", "30 Days", 900, 870),
+
+            # Snake 8Ball
+            ("snk8_3d",  "Snake 8Ball", "3 Days",  320, 290),
+            ("snk8_10d", "Snake 8Ball", "10 Days", 650, 630),
+            ("snk8_30d", "Snake 8Ball", "30 Days", 1200, 1150),
+
+            # Aim Carrom King - Normal
+            ("acn_3d", "Aim Carrom Normal", "3 Days",  250, 220),
+            ("acn_1w", "Aim Carrom Normal", "1 Week",  360, 330),
+            ("acn_1m", "Aim Carrom Normal", "1 Month", 1000, 950),
+
+            # Aim Carrom King - Premium Auto Queue
+            ("acp_3d", "Aim Carrom Premium", "3 Days",  310, 280),
+            ("acp_1w", "Aim Carrom Premium", "1 Week",  460, 420),
+            ("acp_1m", "Aim Carrom Premium", "1 Month", 1250, 1180),
         ]
-        db.executemany(
-            "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
-            defaults
-        )
+        
+        for p in defaults:
+            db.execute("""
+                INSERT INTO prices (plan, game, label, regular, reseller)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(plan) DO UPDATE SET
+                    game=excluded.game,
+                    label=excluded.label,
+                    regular=excluded.regular,
+                    reseller=excluded.reseller
+            """, p)
 
 def db_get_balance(user_id):
     with get_db() as db:
@@ -191,7 +212,12 @@ def get_price(user_id, plan_id):
     return p["reseller"] if db_is_reseller(user_id) else p["regular"]
 
 def stock_text():
-    lines = ["📦 Current Stock Status\n", "🔥 KOS Engine Keys:"]
+    lines = ["📦 Current Stock Status\n", "👑 AIM CARROM KING:"]
+    for p in ["acn_3d","acn_1w","acn_1m","acp_3d","acp_1w","acp_1m"]:
+        plan = db_get_plan(p)
+        if plan: lines.append(f"  {plan['game']} ({plan['label']}) : {db_count_keys(p)}")
+
+    lines.append("\n🔥 KOS Engine Keys:")
     for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  {plan['game']} ({plan['label']}) : {db_count_keys(p)}")
@@ -202,13 +228,24 @@ def stock_text():
         if plan: lines.append(f"  {plan['label']:10} : {db_count_keys(p)}")
 
     lines.append("\n🐍 Snake Engine:")
-    for p in ["snkc_3d","snkc_10d","snkc_30d"]:
+    for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  {plan['label']:10} : {db_count_keys(p)}")
+        if plan: lines.append(f"  {plan['game']} ({plan['label']}) : {db_count_keys(p)}")
+
     return "\n".join(lines)
 
 def price_list_text():
-    lines = ["💎 VIP PRICE LIST 💎\n", "🔥 KOS Engine:"]
+    lines = ["💎 VIP PRICE LIST 💎\n", "👑 𝗔𝗜𝗠 𝗖𝗔𝗥𝗥𝗢𝗠 𝗞𝗜𝗡𝗚 ✅"]
+    lines.append("  Normal:")
+    for p in ["acn_3d","acn_1w","acn_1m"]:
+        plan = db_get_plan(p)
+        if plan: lines.append(f"    {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+    lines.append("  Premium (Auto Queue):")
+    for p in ["acp_3d","acp_1w","acp_1m"]:
+        plan = db_get_plan(p)
+        if plan: lines.append(f"    {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+
+    lines.append("\n🔥 KOS Engine:")
     for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  {plan['game']} {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
@@ -219,9 +256,10 @@ def price_list_text():
         if plan: lines.append(f"  Bitaim {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
 
     lines.append("\n🐍 Snake Engine:")
-    for p in ["snkc_3d","snkc_10d","snkc_30d"]:
+    for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  Snake Engine {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+        if plan: lines.append(f"  {plan['game']} {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+
     return "\n".join(lines)
 
 pending_orders   = {}
@@ -235,8 +273,8 @@ def get_main_dashboard(uid, name):
     last_buy = db_get_last_purchase(uid)
 
     inline_kbd = [
-        [InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu"), InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu")],
-        [InlineKeyboardButton("🐍 Snake Engine", callback_data="snkc_menu")],
+        [InlineKeyboardButton("👑 Aim Carrom King", callback_data="aim_menu"), InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu")],
+        [InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu"), InlineKeyboardButton("🐍 Snake Engine", callback_data="snake_menu")],
         [InlineKeyboardButton("💵 Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 Orders History", callback_data="orders_hist")],
         [InlineKeyboardButton("🥰🔥 Reseller Apply", callback_data="become_reseller")]
     ]
@@ -278,7 +316,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     name    = update.effective_user.first_name
 
-    # Gmail submission logic for Bitaim
     if user_id in awaiting_gmail:
         plan_id = awaiting_gmail.pop(user_id)
         plan    = db_get_plan(plan_id)
@@ -347,6 +384,72 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(msg, reply_markup=inline_markup)
         return
 
+    # --- AIM CARROM KING MENU ---
+    if query.data == "aim_menu":
+        keyboard = [
+            [InlineKeyboardButton("✅ Normal Plan", callback_data="aim_normal")],
+            [InlineKeyboardButton("❤️‍🔥 Premium (Auto Queue)", callback_data="aim_premium")],
+            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
+        ]
+        await query.edit_message_text("👑 𝗔𝗜𝗠 𝗖𝗔𝗥𝗥𝗢𝗠 𝗞𝗜𝗡𝗚 𝗖𝗔𝗧𝗘𝗚𝗢𝗥𝗜𝗘𝗦", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if query.data == "aim_normal":
+        p3 = get_price(user_id, "acn_3d"); p1w = get_price(user_id, "acn_1w"); p1m = get_price(user_id, "acn_1m")
+        keyboard = [
+            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_acn_3d")],
+            [InlineKeyboardButton(f"⚡ Buy 1 Week (₹{p1w})", callback_data="buy_acn_1w")],
+            [InlineKeyboardButton(f"⚡ Buy 1 Month (₹{p1m})", callback_data="buy_acn_1m")],
+            [InlineKeyboardButton("◀️ Back", callback_data="aim_menu")]
+        ]
+        text = f"👑 Aim Carrom King (Normal Plan)\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 1 Week  → ₹{p1w}\n🔥 1 Month → ₹{p1m}\n━━━━━━━━━━━━━━━━━━━━━━"
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if query.data == "aim_premium":
+        p3 = get_price(user_id, "acp_3d"); p1w = get_price(user_id, "acp_1w"); p1m = get_price(user_id, "acp_1m")
+        keyboard = [
+            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_acp_3d")],
+            [InlineKeyboardButton(f"⚡ Buy 1 Week (₹{p1w})", callback_data="buy_acp_1w")],
+            [InlineKeyboardButton(f"⚡ Buy 1 Month (₹{p1m})", callback_data="buy_acp_1m")],
+            [InlineKeyboardButton("◀️ Back", callback_data="aim_menu")]
+        ]
+        text = f"❤️‍🔥 Aim Carrom King (Premium Auto Queue)\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 1 Week  → ₹{p1w}\n🔥 1 Month → ₹{p1m}\n━━━━━━━━━━━━━━━━━━━━━━"
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    # --- SNAKE MENU (SUB-MENU LIKE KOS) ---
+    if query.data == "snake_menu":
+        keyboard = [
+            [InlineKeyboardButton("🐍 Snake Carrom", callback_data="snk_carrom")],
+            [InlineKeyboardButton("🎱 Snake 8Ball", callback_data="snk_8ball")],
+            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
+        ]
+        await query.edit_message_text("🐍 𝗦𝗡𝗔𝗞𝗘 𝗘𝗡𝗚𝗜𝗡𝗘 𝗖𝗔𝗧𝗘𝗚𝗢𝗥𝗜𝗘𝗦", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if query.data == "snk_carrom":
+        p3 = get_price(user_id, "snkc_3d"); p10 = get_price(user_id, "snkc_10d"); p30 = get_price(user_id, "snkc_30d")
+        keyboard = [
+            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_snkc_3d"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_snkc_10d")],
+            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_snkc_30d")],
+            [InlineKeyboardButton("◀️ Back", callback_data="snake_menu")]
+        ]
+        text = f"🐍 Snake Engine (Carrom)\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if query.data == "snk_8ball":
+        p3 = get_price(user_id, "snk8_3d"); p10 = get_price(user_id, "snk8_10d"); p30 = get_price(user_id, "snk8_30d")
+        keyboard = [
+            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_snk8_3d"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_snk8_10d")],
+            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_snk8_30d")],
+            [InlineKeyboardButton("◀️ Back", callback_data="snake_menu")]
+        ]
+        text = f"🎱 Snake Engine (8 Ball Pool)\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
     # --- KOS MENU ---
     if query.data == "kos_menu":
         keyboard = [
@@ -358,7 +461,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("🟢🔴 KOS ENGINE CATEGORIES 🔴🟢", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # KOS 8 BALL
     if query.data == "kos_8b":
         p1 = get_price(user_id, "b1"); p7 = get_price(user_id, "b7")
         p15 = get_price(user_id, "b15"); p30 = get_price(user_id, "b30")
@@ -371,7 +473,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # KOS CARROM
     if query.data == "kos_cp":
         p1 = get_price(user_id, "c1"); p7 = get_price(user_id, "c7")
         p15 = get_price(user_id, "c15"); p30 = get_price(user_id, "c30")
@@ -384,7 +485,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # KOS FREE FIRE
     if query.data == "kos_ff":
         p1 = get_price(user_id, "f1"); p7 = get_price(user_id, "f7"); p30 = get_price(user_id, "f30")
         keyboard = [
@@ -406,18 +506,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
         ]
         text = f"⚡ Bitaim Hack\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 7 Days   → ₹{p7}\n🔥 30 Days  → ₹{p30}\n🔥 3 Months → ₹{p90}\n🔥 Life Time → ₹{plt}\n━━━━━━━━━━━━━━━━━━━━━━"
-        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-        return
-
-    # SNAKE ENGINE (CARROM) MENU
-    if query.data == "snkc_menu":
-        p3 = get_price(user_id, "snkc_3d"); p10 = get_price(user_id, "snkc_10d"); p30 = get_price(user_id, "snkc_30d")
-        keyboard = [
-            [InlineKeyboardButton(f"⚡ Buy 3 Days (₹{p3})", callback_data="buy_snkc_3d"), InlineKeyboardButton(f"⚡ Buy 10 Days (₹{p10})", callback_data="buy_snkc_10d")],
-            [InlineKeyboardButton(f"⚡ Buy 30 Days (₹{p30})", callback_data="buy_snkc_30d")],
-            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
-        ]
-        text = f"🐍 Snake Engine\n\n🟢 VIP Price List:\n━━━━━━━━━━━━━━━━━━━━━━\n🔥 3 Days  → ₹{p3}\n🔥 10 Days → ₹{p10}\n🔥 30 Days → ₹{p30}\n━━━━━━━━━━━━━━━━━━━━━━"
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -551,7 +639,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         role_lbl = "Reseller" if db_is_reseller(cust_id) else "Customer"
         await query.edit_message_caption("⏳ Verifying...\nAdmin is reviewing your payment.")
         
-        amounts = [50, 60, 100, 120, 150, 160, 180, 200, 300, 340, 350, 450, 500, 800, 900, 1000, 1450, 1860]
+        amounts = [50, 60, 65, 100, 120, 150, 160, 165, 180, 190, 200, 250, 280, 290, 300, 310, 330, 340, 350, 360, 410, 420, 450, 460, 500, 600, 630, 650, 800, 850, 870, 900, 950, 1000, 1150, 1180, 1200, 1250, 1400, 1450, 1500, 1600, 1790, 1800, 1860]
         row, kbd = [], []
         for amt in amounts:
             row.append(InlineKeyboardButton(f"✅ ₹{amt}", callback_data=f"pay_{cust_id}_{amt}"))
@@ -597,11 +685,14 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Prices:\n/setprice <plan> <regular> <reseller>\n/prices\n\n"
         "Resellers:\n/addreseller <id>\n/removereseller <id>\n/resellers\n\n"
         "Plan codes:\n"
+        "acn_3d, acn_1w, acn_1m (Aim Normal)\n"
+        "acp_3d, acp_1w, acp_1m (Aim Premium)\n"
         "b1, b7, b15, b30 (KOS 8B)\n"
         "c1, c7, c15, c30 (KOS Carrom)\n"
         "f1, f7, f30 (KOS FF)\n"
         "bit7, bit30, bit90, bitlt (Bitaim)\n"
-        "snkc_3d, snkc_10d, snkc_30d (Snake Carrom)"
+        "snkc_3d, snkc_10d, snkc_30d (Snake Carrom)\n"
+        "snk8_3d, snk8_10d, snk8_30d (Snake 8Ball)"
     )
     await update.message.reply_text(f"```\n{help_text}\n```", parse_mode="Markdown")
 
