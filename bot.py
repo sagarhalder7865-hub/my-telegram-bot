@@ -2,6 +2,8 @@ import os
 import json
 import asyncio
 import time
+import base64
+import requests
 import sqlite3
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -11,6 +13,10 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMIN_ID = 8546348748
 ADMIN_USERNAME = "@happy_gamer2"
+
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+GITHUB_REPO  = os.environ.get("GITHUB_REPO", "sagarhalder7865-hub/my-telegram-bot")
+DATA_FILE    = "bot_data.json"
 
 DATA_DIR = "/opt/render/project/src" if os.path.exists("/opt/render/project/src") else os.path.dirname(os.path.abspath(__file__))
 DB_PATH  = os.path.join(DATA_DIR, "bot_data.db")
@@ -37,6 +43,70 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
+# --- GITHUB AUTO-SYNC SYSTEM ---
+def push_data_to_github():
+    if not GITHUB_TOKEN or not GITHUB_REPO:
+        return
+    try:
+        data_dump = export_database_json()
+        content_str = json.dumps(data_dump, indent=2)
+        content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
+        
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        sha = None
+        get_res = requests.get(url, headers=headers)
+        if get_res.status_code == 200:
+            sha = get_res.json().get("sha")
+            
+        payload = {
+            "message": "Auto-sync bot data from Telegram action",
+            "content": content_b64
+        }
+        if sha:
+            payload["sha"] = sha
+            
+        requests.put(url, headers=headers, json=payload)
+    except Exception as e:
+        print(f"GitHub Sync Error: {e}")
+
+def pull_data_from_github():
+    if not GITHUB_TOKEN or not GITHUB_REPO:
+        return None
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            content_b64 = res.json().get("content", "")
+            return json.loads(base64.b64decode(content_b64).decode("utf-8"))
+    except Exception as e:
+        print(f"GitHub Pull Error: {e}")
+    return None
+
+def export_database_json():
+    with get_db() as db:
+        balances = [dict(r) for r in db.execute("SELECT * FROM balances").fetchall()]
+        keys = [dict(r) for r in db.execute("SELECT * FROM keys").fetchall()]
+        resellers = [dict(r) for r in db.execute("SELECT * FROM resellers").fetchall()]
+        prices = [dict(r) for r in db.execute("SELECT * FROM prices").fetchall()]
+        orders = [dict(r) for r in db.execute("SELECT * FROM order_history").fetchall()]
+    return {
+        "balances": balances,
+        "keys": keys,
+        "resellers": resellers,
+        "prices": prices,
+        "order_history": orders
+    }
+
+# --- DATABASE SETUP ---
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -75,55 +145,76 @@ def init_db():
             );
         """)
         
-        db.execute("DELETE FROM prices")
-        defaults = [
-            # AIM CARROM KING Normal
-            ("acn_3d",  "AIM Carrom Normal", "3 Days",  250, 220),
-            ("acn_7d",  "AIM Carrom Normal", "1 Week",  360, 330),
-            ("acn_30d", "AIM Carrom Normal", "1 Month", 1000, 950),
-
-            # AIM CARROM KING Premium
-            ("acp_3d",  "AIM Carrom Premium", "3 Days",  310, 280),
-            ("acp_7d",  "AIM Carrom Premium", "1 Week",  480, 460),
-            ("acp_30d", "AIM Carrom Premium", "1 Month", 1250, 1180),
-
-            # KOS 8 Ball
-            ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
-            ("b7",  "KOS 8 Ball", "7 Days",  500, 450),
-            ("b15", "KOS 8 Ball", "15 Days", 900, 800),
-            ("b30", "KOS 8 Ball", "30 Days", 1600, 1400),
+        gh_data = pull_data_from_github()
+        if gh_data:
+            db.execute("DELETE FROM balances")
+            db.execute("DELETE FROM keys")
+            db.execute("DELETE FROM resellers")
+            db.execute("DELETE FROM prices")
+            db.execute("DELETE FROM order_history")
             
-            # KOS Carrom
-            ("c1",  "KOS Carrom", "1 Day",   120, 100),
-            ("c7",  "KOS Carrom", "7 Days",  300, 280),
-            ("c15", "KOS Carrom", "15 Days", 490, 450),
-            ("c30", "KOS Carrom", "30 Days", 850, 750),
-            
-            # KOS FreeFire
-            ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
-            ("f7",  "KOS FreeFire Panel", "7 Days",  600, 500),
-            ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
+            for b in gh_data.get("balances", []):
+                db.execute("INSERT OR REPLACE INTO balances (user_id, amount) VALUES (?,?)", (b["user_id"], b["amount"]))
+            for k in gh_data.get("keys", []):
+                db.execute("INSERT OR REPLACE INTO keys (id, plan, key) VALUES (?,?,?)", (k["id"], k["plan"], k["key"]))
+            for r in gh_data.get("resellers", []):
+                db.execute("INSERT OR REPLACE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
+            for p in gh_data.get("prices", []):
+                db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
+                           (p["plan"], p["game"], p["label"], p["regular"], p["reseller"]))
+            for o in gh_data.get("order_history", []):
+                db.execute("INSERT OR REPLACE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
+                           (o["id"], o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o["timestamp"]))
+        else:
+            db.execute("DELETE FROM prices")
+            defaults = [
+                # AIM CARROM KING Normal
+                ("acn_3d",  "AIM Carrom Normal", "3 Days",  250, 220),
+                ("acn_7d",  "AIM Carrom Normal", "1 Week",  360, 330),
+                ("acn_30d", "AIM Carrom Normal", "1 Month", 1000, 950),
 
-            # Bitaim Hack
-            ("bit7",  "Bitaim ⚡", "7 Days",    65, 60),
-            ("bit30", "Bitaim ⚡", "30 Days",   165, 160),
-            ("bit90", "Bitaim ⚡", "3 Months",  340, 330),
-            ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1790),
+                # AIM CARROM KING Premium
+                ("acp_3d",  "AIM Carrom Premium", "3 Days",  310, 280),
+                ("acp_7d",  "AIM Carrom Premium", "1 Week",  480, 460),
+                ("acp_30d", "AIM Carrom Premium", "1 Month", 1250, 1180),
 
-            # Snake Engine Carrom
-            ("snkc_3d",  "Snake Carrom", "3 Days",  190, 170),
-            ("snkc_10d", "Snake Carrom", "10 Days", 450, 410),
-            ("snkc_30d", "Snake Carrom", "30 Days", 900, 870),
+                # KOS 8 Ball
+                ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
+                ("b7",  "KOS 8 Ball", "7 Days",  500, 450),
+                ("b15", "KOS 8 Ball", "15 Days", 900, 800),
+                ("b30", "KOS 8 Ball", "30 Days", 1600, 1400),
+                
+                # KOS Carrom
+                ("c1",  "KOS Carrom", "1 Day",   120, 100),
+                ("c7",  "KOS Carrom", "7 Days",  300, 230),
+                ("c15", "KOS Carrom", "15 Days", 490, 400),
+                ("c30", "KOS Carrom", "30 Days", 800, 670),
+                
+                # KOS FreeFire
+                ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
+                ("f7",  "KOS FreeFire Panel", "7 Days",  600, 500),
+                ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
 
-            # Snake Engine 8Ball
-            ("snk8_3d",  "Snake 8Ball", "3 Days",  320, 290),
-            ("snk8_10d", "Snake 8Ball", "10 Days", 650, 630),
-            ("snk8_30d", "Snake 8Ball", "30 Days", 1200, 1150),
-        ]
-        db.executemany(
-            "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
-            defaults
-        )
+                # Bitaim Hack
+                ("bit7",  "Bitaim ⚡", "7 Days",    65, 50),
+                ("bit30", "Bitaim ⚡", "30 Days",   165, 160),
+                ("bit90", "Bitaim ⚡", "3 Months",  380, 340),
+                ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1790),
+
+                # Snake Engine Carrom
+                ("snkc_3d",  "Snake Carrom", "3 Days",  190, 160),
+                ("snkc_10d", "Snake Carrom", "10 Days", 450, 400),
+                ("snkc_30d", "Snake Carrom", "30 Days", 900, 830),
+
+                # Snake Engine 8Ball
+                ("snk8_3d",  "Snake 8Ball", "3 Days",  320, 290),
+                ("snk8_10d", "Snake 8Ball", "10 Days", 650, 630),
+                ("snk8_30d", "Snake 8Ball", "30 Days", 1200, 1150),
+            ]
+            db.executemany(
+                "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
+                defaults
+            )
 
 def db_get_balance(user_id):
     with get_db() as db:
@@ -136,6 +227,7 @@ def db_set_balance(user_id, amount):
             "INSERT INTO balances (user_id,amount) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET amount=?",
             (user_id, amount, amount)
         )
+    push_data_to_github()
 
 def db_add_balance(user_id, delta):
     cur = db_get_balance(user_id)
@@ -149,12 +241,14 @@ def db_count_keys(plan):
 def db_add_key(plan, key):
     with get_db() as db:
         db.execute("INSERT OR IGNORE INTO keys (plan,key) VALUES (?,?)", (plan, key))
+    push_data_to_github()
 
 def db_pop_key(plan):
     with get_db() as db:
         row = db.execute("SELECT id,key FROM keys WHERE plan=? ORDER BY id LIMIT 1", (plan,)).fetchone()
         if row:
             db.execute("DELETE FROM keys WHERE id=?", (row["id"],))
+            push_data_to_github()
             return row["key"]
     return None
 
@@ -165,10 +259,12 @@ def db_is_reseller(user_id):
 def db_add_reseller(user_id):
     with get_db() as db:
         db.execute("INSERT OR IGNORE INTO resellers (user_id) VALUES (?)", (user_id,))
+    push_data_to_github()
 
 def db_remove_reseller(user_id):
     with get_db() as db:
         db.execute("DELETE FROM resellers WHERE user_id=?", (user_id,))
+    push_data_to_github()
 
 def db_all_resellers():
     with get_db() as db:
@@ -181,6 +277,7 @@ def db_get_plan(plan_id):
 def db_set_price(plan_id, regular, reseller):
     with get_db() as db:
         db.execute("UPDATE prices SET regular=?, reseller=? WHERE plan=?", (regular, reseller, plan_id))
+    push_data_to_github()
 
 def db_record_order(user_id, game, plan_label, price, key_delivered):
     with get_db() as db:
@@ -188,6 +285,7 @@ def db_record_order(user_id, game, plan_label, price, key_delivered):
             "INSERT INTO order_history (user_id, game, plan_label, price, key_delivered) VALUES (?,?,?,?,?)",
             (user_id, game, plan_label, price, key_delivered)
         )
+    push_data_to_github()
 
 def db_get_last_purchase(user_id):
     with get_db() as db:
@@ -548,7 +646,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         key = db_pop_key(plan_id)
         db_record_order(user_id, plan['game'], plan['label'], price, key)
 
-        # PERFECT RECEIPT FORMAT WITH CLICK-TO-COPY KEY & REMAINING BALANCE
         msg = (
             f"🎉 *Purchase Successful!*\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -647,7 +744,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         role_lbl = "Reseller" if db_is_reseller(cust_id) else "Customer"
         await query.edit_message_caption("⏳ Verifying...\nAdmin is reviewing your payment.")
         
-        amounts = [60, 65, 100, 120, 150, 160, 165, 180, 190, 200, 220, 250, 280, 300, 310, 320, 330, 340, 360, 410, 450, 460, 480, 490, 500, 600, 630, 650, 750, 800, 850, 870, 900, 950, 1000, 1150, 1180, 1200, 1250, 1400, 1500, 1600, 1790, 1800, 1860]
+        amounts = [50, 60, 65, 100, 120, 150, 160, 165, 180, 190, 200, 220, 230, 250, 280, 290, 300, 310, 320, 330, 340, 360, 380, 400, 410, 450, 460, 480, 490, 500, 600, 630, 650, 670, 750, 800, 830, 850, 870, 900, 950, 1000, 1150, 1180, 1200, 1250, 1400, 1500, 1600, 1790, 1800, 1860]
         row, kbd = [], []
         for amt in amounts:
             row.append(InlineKeyboardButton(f"✅ ₹{amt}", callback_data=f"pay_{cust_id}_{amt}"))
@@ -718,7 +815,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         uid = int(context.args[0]); amount = int(context.args[1])
         new_bal = db_add_balance(uid, amount)
-        await update.message.reply_text(f"✅ Added ₹{amount} to {uid}\nBalance: ₹{new_bal}")
+        await update.message.reply_text(f"✅ Added ₹{amount} to {uid}\nBalance: ₹{new_bal} (Synced to GitHub ☁️)")
         try: await context.bot.send_message(uid, f"✅ Admin added ₹{amount}.\nNew balance: ₹{new_bal}")
         except Exception: pass
     except Exception: await update.message.reply_text("Usage: /add <user_id> <amount>")
@@ -728,7 +825,7 @@ async def cmd_addkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         plan = context.args[0].lower(); new_key = context.args[1]
         db_add_key(plan, new_key)
-        await update.message.reply_text(f"✅ Key Added for {plan}: {new_key}\nTotal Stock: {db_count_keys(plan)}")
+        await update.message.reply_text(f"✅ Key Added for {plan}: `{new_key}`\nTotal Stock: {db_count_keys(plan)} (Synced to GitHub ☁️)", parse_mode="Markdown")
     except Exception: await update.message.reply_text("Usage: /addkey <plan_code> <key>")
 
 async def cmd_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -752,7 +849,7 @@ async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         plan = context.args[0].lower(); reg = int(context.args[1]); res = int(context.args[2])
         db_set_price(plan, reg, res)
-        await update.message.reply_text(f"✅ Price Updated for {plan}: Regular ₹{reg}, Reseller ₹{res}")
+        await update.message.reply_text(f"✅ Price Updated for {plan}: Regular ₹{reg}, Reseller ₹{res} (Synced to GitHub ☁️)")
     except Exception: await update.message.reply_text("Usage: /setprice <plan_code> <regular> <reseller>")
 
 async def cmd_addreseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -760,7 +857,7 @@ async def cmd_addreseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         uid = int(context.args[0])
         db_add_reseller(uid)
-        await update.message.reply_text(f"✅ {uid} is now a Reseller")
+        await update.message.reply_text(f"✅ {uid} is now a Reseller (Synced to GitHub ☁️)")
     except Exception: await update.message.reply_text("Usage: /addreseller <user_id>")
 
 async def cmd_removereseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -768,7 +865,7 @@ async def cmd_removereseller(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         uid = int(context.args[0])
         db_remove_reseller(uid)
-        await update.message.reply_text(f"✅ {uid} removed from Resellers")
+        await update.message.reply_text(f"✅ {uid} removed from Resellers (Synced to GitHub ☁️)")
     except Exception: await update.message.reply_text("Usage: /removereseller <user_id>")
 
 async def cmd_resellers(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -800,5 +897,5 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("VIP Bot Updated & Running... 🚀")
+    print("VIP Bot Updated & Running with GitHub Cloud Sync... 🚀")
     app.run_polling()
