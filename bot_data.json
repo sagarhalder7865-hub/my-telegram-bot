@@ -9,7 +9,13 @@
       "amount": 9999999
     }
   ],
-  "keys": [],
+  "keys": [
+    {
+      "id": 1,
+      "plan": "c30",
+      "key": "HGLKF-MVD4"
+    }
+  ],
   "resellers": [],
   "prices": [
     {
