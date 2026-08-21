@@ -1,0 +1,203 @@
+{
+  "balances": [],
+  "keys": [
+    {
+      "id": 1,
+      "plan": "c30",
+      "key": "Hgvip653"
+    }
+  ],
+  "resellers": [],
+  "prices": [
+    {
+      "plan": "acn_3d",
+      "game": "AIM Carrom Normal",
+      "label": "3 Days",
+      "regular": 250,
+      "reseller": 220
+    },
+    {
+      "plan": "acn_7d",
+      "game": "AIM Carrom Normal",
+      "label": "1 Week",
+      "regular": 360,
+      "reseller": 330
+    },
+    {
+      "plan": "acn_30d",
+      "game": "AIM Carrom Normal",
+      "label": "1 Month",
+      "regular": 1000,
+      "reseller": 950
+    },
+    {
+      "plan": "acp_3d",
+      "game": "AIM Carrom Premium",
+      "label": "3 Days",
+      "regular": 310,
+      "reseller": 280
+    },
+    {
+      "plan": "acp_7d",
+      "game": "AIM Carrom Premium",
+      "label": "1 Week",
+      "regular": 480,
+      "reseller": 460
+    },
+    {
+      "plan": "acp_30d",
+      "game": "AIM Carrom Premium",
+      "label": "1 Month",
+      "regular": 1250,
+      "reseller": 1180
+    },
+    {
+      "plan": "b1",
+      "game": "KOS 8 Ball",
+      "label": "1 Day",
+      "regular": 180,
+      "reseller": 150
+    },
+    {
+      "plan": "b7",
+      "game": "KOS 8 Ball",
+      "label": "7 Days",
+      "regular": 500,
+      "reseller": 450
+    },
+    {
+      "plan": "b15",
+      "game": "KOS 8 Ball",
+      "label": "15 Days",
+      "regular": 900,
+      "reseller": 800
+    },
+    {
+      "plan": "b30",
+      "game": "KOS 8 Ball",
+      "label": "30 Days",
+      "regular": 1600,
+      "reseller": 1400
+    },
+    {
+      "plan": "c1",
+      "game": "KOS Carrom",
+      "label": "1 Day",
+      "regular": 120,
+      "reseller": 100
+    },
+    {
+      "plan": "c7",
+      "game": "KOS Carrom",
+      "label": "7 Days",
+      "regular": 300,
+      "reseller": 230
+    },
+    {
+      "plan": "c15",
+      "game": "KOS Carrom",
+      "label": "15 Days",
+      "regular": 490,
+      "reseller": 400
+    },
+    {
+      "plan": "c30",
+      "game": "KOS Carrom",
+      "label": "30 Days",
+      "regular": 800,
+      "reseller": 670
+    },
+    {
+      "plan": "f1",
+      "game": "KOS FreeFire Panel",
+      "label": "1 Day",
+      "regular": 200,
+      "reseller": 180
+    },
+    {
+      "plan": "f7",
+      "game": "KOS FreeFire Panel",
+      "label": "7 Days",
+      "regular": 600,
+      "reseller": 500
+    },
+    {
+      "plan": "f30",
+      "game": "KOS FreeFire Panel",
+      "label": "30 Days",
+      "regular": 1800,
+      "reseller": 1500
+    },
+    {
+      "plan": "bit7",
+      "game": "Bitaim \u26a1",
+      "label": "7 Days",
+      "regular": 65,
+      "reseller": 50
+    },
+    {
+      "plan": "bit30",
+      "game": "Bitaim \u26a1",
+      "label": "30 Days",
+      "regular": 165,
+      "reseller": 160
+    },
+    {
+      "plan": "bit90",
+      "game": "Bitaim \u26a1",
+      "label": "3 Months",
+      "regular": 380,
+      "reseller": 340
+    },
+    {
+      "plan": "bitlt",
+      "game": "Bitaim \u26a1",
+      "label": "Life Time",
+      "regular": 1860,
+      "reseller": 1790
+    },
+    {
+      "plan": "snkc_3d",
+      "game": "Snake Carrom",
+      "label": "3 Days",
+      "regular": 190,
+      "reseller": 160
+    },
+    {
+      "plan": "snkc_10d",
+      "game": "Snake Carrom",
+      "label": "10 Days",
+      "regular": 450,
+      "reseller": 400
+    },
+    {
+      "plan": "snkc_30d",
+      "game": "Snake Carrom",
+      "label": "30 Days",
+      "regular": 900,
+      "reseller": 830
+    },
+    {
+      "plan": "snk8_3d",
+      "game": "Snake 8Ball",
+      "label": "3 Days",
+      "regular": 320,
+      "reseller": 290
+    },
+    {
+      "plan": "snk8_10d",
+      "game": "Snake 8Ball",
+      "label": "10 Days",
+      "regular": 650,
+      "reseller": 630
+    },
+    {
+      "plan": "snk8_30d",
+      "game": "Snake 8Ball",
+      "label": "30 Days",
+      "regular": 1200,
+      "reseller": 1150
+    }
+  ],
+  "order_history": []
+}
