@@ -1,5 +1,10 @@
 {
-  "balances": [],
+  "balances": [
+    {
+      "user_id": 8546348748,
+      "amount": 8888888
+    }
+  ],
   "keys": [
     {
       "id": 1,
