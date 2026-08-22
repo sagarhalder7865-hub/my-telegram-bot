@@ -1,3 +1,4 @@
+
 import os
 import json
 import asyncio
@@ -19,7 +20,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 GITHUB_REPO  = os.environ.get("GITHUB_REPO", "sagarhalder7865-hub/my-telegram-bot")
 DATA_FILE    = "bot_data.json"
 
-# Gist Config for /genkey
+# Gist Config for Script Key Automation
 GIST_ID = "e155b8f93a7476556fa1c8b2dfc9b164"
 FILE_NAME = "status.txt"
 
@@ -48,7 +49,7 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
-# --- GIST AUTO-GENERATOR ---
+# --- GIST AUTO-UPDATER FOR SCRIPT KEYS ---
 def update_gist(content):
     try:
         url = f"https://api.github.com/gists/{GIST_ID}"
@@ -57,26 +58,6 @@ def update_gist(content):
         requests.patch(url, headers=headers, json=payload)
     except Exception as e:
         print(f"Gist Update Error: {e}")
-
-async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS: 
-        return
-    try:
-        days = int(context.args[0])
-        device_id = context.args[1]
-        
-        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        new_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
-        
-        raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
-        current_data = requests.get(raw_url).text
-        
-        updated_data = current_data + "\n" + new_entry
-        update_gist(updated_data)
-        
-        await update.message.reply_text(f"✅ Key Generated & Updated to Gist!\n`{new_entry}`", parse_mode="Markdown")
-    except Exception as e:
-        await update.message.reply_text(f"Format: /genkey <days> <device_id>\nError: {e}")
 
 # --- GITHUB AUTO-SYNC SYSTEM ---
 def push_data_to_github():
@@ -230,6 +211,10 @@ def init_db():
                 ("snk8_3d",  "Snake 8Ball", "3 Days",  320, 290),
                 ("snk8_10d", "Snake 8Ball", "10 Days", 650, 630),
                 ("snk8_30d", "Snake 8Ball", "30 Days", 1200, 1150),
+                # Script Key Default Pricing (Example)
+                ("sk_1d", "Script Key", "1 Day", 100, 80),
+                ("sk_7d", "Script Key", "7 Days", 300, 250),
+                ("sk_30d", "Script Key", "30 Days", 900, 800),
             ]
             db.executemany(
                 "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
@@ -370,11 +355,17 @@ def price_list_text():
     for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
         plan = db_get_plan(p)
         if plan: lines.append(f"  {plan['game']} {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
+
+    lines.append("\n🛠️ Script Key:")
+    for p in ["sk_1d", "sk_7d", "sk_30d"]:
+        plan = db_get_plan(p)
+        if plan: lines.append(f"  Script Key {plan['label']} → ₹{plan['regular']} (Reseller: ₹{plan['reseller']})")
     return "\n".join(lines)
 
 pending_orders   = {}
 payment_requests = {}
 awaiting_gmail   = {}
+awaiting_device  = {} # For Script Key Device ID Input
 PAYMENT_TIMEOUT  = 300
 
 def get_main_dashboard(uid, name):
@@ -386,6 +377,7 @@ def get_main_dashboard(uid, name):
         [InlineKeyboardButton("👑 AIM CARROM KING", callback_data="aim_menu")],
         [InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu"), InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu")],
         [InlineKeyboardButton("🐍 Snake Engine", callback_data="snk_menu")],
+        [InlineKeyboardButton("🛠️ Script Key (Auto Gist)", callback_data="script_key_menu")],
         [InlineKeyboardButton("💵 Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 Orders History", callback_data="orders_hist")],
         [InlineKeyboardButton("🥰🔥 Reseller Apply", callback_data="become_reseller")]
     ]
@@ -400,11 +392,8 @@ def get_main_dashboard(uid, name):
         f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"📖 How to Buy Key / কীভাবে কি কিনবেন:\n"
         f"1️⃣ Click 💵 Add Balance to deposit funds.\n"
-        f"   (প্রথমে Add Balance এ গিয়ে পেমেন্ট করে ব্যালেন্স যোগ করুন)\n"
-        f"2️⃣ Select your desired Hack Engine.\n"
-        f"   (তারপর আপনার পছন্দের গেম সিলেক্ট করুন)\n"
-        f"3️⃣ Choose plan & tap Confirm Purchase for instant Key!\n"
-        f"   (কনফার্ম করলেই ১ সেকেন্ডে কী পেয়ে যাবেন)"
+        f"2️⃣ Select your desired Hack Engine or Script Key.\n"
+        f"3️⃣ Confirm purchase to get instant activation!"
     )
     return msg, InlineKeyboardMarkup(inline_kbd)
 
@@ -426,6 +415,56 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text    = update.message.text
     user_id = update.effective_user.id
     name    = update.effective_user.first_name
+
+    # Handle Script Key Device ID Input
+    if user_id in awaiting_device:
+        data = awaiting_device.pop(user_id)
+        plan_id = data["plan_id"]
+        days = data["days"]
+        plan = db_get_plan(plan_id)
+        price = get_price(user_id, plan_id)
+        bal = db_get_balance(user_id)
+
+        if bal < price:
+            await update.message.reply_text("🔴 INSUFFICIENT BALANCE!\nPlease add funds first using 💵 Add Balance.")
+            return
+
+        # Deduct balance & record order
+        new_bal = bal - price
+        db_set_balance(user_id, new_bal)
+
+        # Calculate expiry & generate Gist entry
+        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
+        new_entry = f"HGTOKEN=Hgvip653={expiry}={text.strip()}"
+
+        try:
+            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
+            current_data = requests.get(raw_url).text
+            update_gist(current_data + "\n" + new_entry)
+        except Exception as e:
+            print(f"Gist Sync Error: {e}")
+
+        db_record_order(user_id, "Script Key", plan['label'], price, new_entry)
+
+        await update.message.reply_text(
+            f"🎉 SCRIPT KEY GENERATED SUCCESSFULLY!\n━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⏱ Plan: {plan['label']} ({days} Days)\n"
+            f"📱 Device ID: `{text.strip()`}\n"
+            f"💰 Price Paid: ₹{price}\n"
+            f"💳 Remaining Balance: ₹{new_bal}\n━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"🔑 Key Entry Added to Gist:\n`{new_entry}`",
+            parse_mode="Markdown"
+        )
+
+        for admin_id in ADMINS:
+            try:
+                await context.bot.send_message(
+                    chat_id=admin_id,
+                    text=f"🛒 *NEW SCRIPT KEY BOUGHT!*\n👤 User: {name} (`{user_id}`)\n⏱ Plan: {plan['label']}\n📱 Device ID: `{text.strip()`}\n💰 Price: ₹{price}",
+                    parse_mode="Markdown"
+                )
+            except Exception: pass
+        return
 
     if user_id in awaiting_gmail:
         plan_id = awaiting_gmail.pop(user_id)
@@ -451,7 +490,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for admin_id in ADMINS:
                 await context.bot.send_message(
                     chat_id=admin_id,
-                    text=f"🚨 NEW BITAIM ORDER!\n👤 User: {user_id} ({name})\n🎮 Item: {plan['game']} ({plan['label']})\n💰 Price: ₹{price}\n📧 Gmail: `{text}`\n\nTo reply user: /reply {user_id} Your_Message",
+                    text=f"🚨 NEW BITAIM ORDER!\n👤 User: {user_id} ({name})\n🎮 Item: {plan['game']} ({plan['label']})\n💰 Price: ₹{price}\n📧 Gmail: `{text}`",
                     parse_mode="Markdown"
                 )
         except Exception: pass
@@ -500,6 +539,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(msg, reply_markup=inline_markup)
         return
 
+    # --- SCRIPT KEY MENU ---
+    if query.data == "script_key_menu":
+        p1 = get_price(user_id, "sk_1d")
+        p7 = get_price(user_id, "sk_7d")
+        p30 = get_price(user_id, "sk_30d")
+        keyboard = [
+            [InlineKeyboardButton(f"🛠️ 1 Day (₹{p1})", callback_data="buy_sk_1d"), InlineKeyboardButton(f"🛠️ 7 Days (₹{p7})", callback_data="buy_sk_7d")],
+            [InlineKeyboardButton(f"🛠️ 30 Days (₹{p30})", callback_data="buy_sk_30d")],
+            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
+        ]
+        text = f"🛠️ *SCRIPT KEY (Gist Auto Generator)*\n\nSelect your duration below to generate a key for your Device ID:"
+        await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        return
+
+    # --- OTHER MENUS ---
     if query.data == "aim_menu":
         keyboard = [
             [InlineKeyboardButton("🟢 AIM Normal", callback_data="aim_normal"), InlineKeyboardButton("🔥 AIM Premium (Auto Queue)", callback_data="aim_premium")],
@@ -623,6 +677,20 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not plan:
             await query.answer("❌ Invalid plan", show_alert=True)
             return
+
+        # Check if it's Script Key
+        if plan_id.startswith("sk_"):
+            days_map = {"sk_1d": 1, "sk_7d": 7, "sk_30d": 30}
+            days = days_map.get(plan_id, 1)
+            awaiting_device[user_id] = {"plan_id": plan_id, "days": days}
+            await query.edit_message_text(
+                f"📱 *DEVICE ID REQUIRED*\n━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"⏱ Plan: {plan['label']} (₹{get_price(user_id, plan_id)})\n\n"
+                f"Please type & send your **Device ID** in this chat:",
+                parse_mode="Markdown"
+            )
+            return
+
         price = get_price(user_id, plan_id)
         pending_orders[user_id] = plan_id
         keyboard = [
@@ -834,6 +902,20 @@ async def cmd_addkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db_add_key(plan, new_key)
         await update.message.reply_text(f"✅ Key Added for {plan}: `{new_key}`\nTotal Stock: {db_count_keys(plan)} (Synced to GitHub ☁️)", parse_mode="Markdown")
     except Exception: await update.message.reply_text("Usage: /addkey <plan_code> <key>")
+
+async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    try:
+        days = int(context.args[0])
+        device_id = context.args[1]
+        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
+        new_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
+        current_data = requests.get(raw_url).text
+        update_gist(current_data + "\n" + new_entry)
+        await update.message.reply_text(f"✅ Key Generated & Updated to Gist!\n`{new_entry}`", parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text(f"Format: /genkey <days> <device_id>\nError: {e}")
 
 async def cmd_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
