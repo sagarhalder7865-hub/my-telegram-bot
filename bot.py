@@ -5,18 +5,23 @@ import time
 import base64
 import requests
 import sqlite3
+import datetime
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
 TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
-ADMIN_ID = 8546348748
+ADMINS   = [8546348748, 8737475340]
 ADMIN_USERNAME = "@happy_gamer2"
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 GITHUB_REPO  = os.environ.get("GITHUB_REPO", "sagarhalder7865-hub/my-telegram-bot")
 DATA_FILE    = "bot_data.json"
+
+# Gist Config for /genkey
+GIST_ID = "e155b8f93a7476556fa1c8b2dfc9b164"
+FILE_NAME = "status.txt"
 
 DATA_DIR = "/opt/render/project/src" if os.path.exists("/opt/render/project/src") else os.path.dirname(os.path.abspath(__file__))
 DB_PATH  = os.path.join(DATA_DIR, "bot_data.db")
@@ -42,6 +47,36 @@ def run_web_server():
     server.serve_forever()
 
 Thread(target=run_web_server, daemon=True).start()
+
+# --- GIST AUTO-GENERATOR ---
+def update_gist(content):
+    try:
+        url = f"https://api.github.com/gists/{GIST_ID}"
+        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        payload = {"files": {FILE_NAME: {"content": content}}}
+        requests.patch(url, headers=headers, json=payload)
+    except Exception as e:
+        print(f"Gist Update Error: {e}")
+
+async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: 
+        return
+    try:
+        days = int(context.args[0])
+        device_id = context.args[1]
+        
+        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
+        new_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        
+        raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
+        current_data = requests.get(raw_url).text
+        
+        updated_data = current_data + "\n" + new_entry
+        update_gist(updated_data)
+        
+        await update.message.reply_text(f"✅ Key Generated & Updated to Gist!\n`{new_entry}`", parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text(f"Format: /genkey <days> <device_id>\nError: {e}")
 
 # --- GITHUB AUTO-SYNC SYSTEM ---
 def push_data_to_github():
@@ -168,45 +203,30 @@ def init_db():
         else:
             db.execute("DELETE FROM prices")
             defaults = [
-                # AIM CARROM KING Normal
                 ("acn_3d",  "AIM Carrom Normal", "3 Days",  250, 220),
                 ("acn_7d",  "AIM Carrom Normal", "1 Week",  360, 330),
                 ("acn_30d", "AIM Carrom Normal", "1 Month", 1000, 950),
-
-                # AIM CARROM KING Premium
                 ("acp_3d",  "AIM Carrom Premium", "3 Days",  310, 280),
                 ("acp_7d",  "AIM Carrom Premium", "1 Week",  480, 460),
                 ("acp_30d", "AIM Carrom Premium", "1 Month", 1250, 1180),
-
-                # KOS 8 Ball
                 ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
                 ("b7",  "KOS 8 Ball", "7 Days",  500, 450),
                 ("b15", "KOS 8 Ball", "15 Days", 900, 800),
                 ("b30", "KOS 8 Ball", "30 Days", 1600, 1400),
-                
-                # KOS Carrom
                 ("c1",  "KOS Carrom", "1 Day",   120, 100),
                 ("c7",  "KOS Carrom", "7 Days",  300, 230),
                 ("c15", "KOS Carrom", "15 Days", 490, 400),
                 ("c30", "KOS Carrom", "30 Days", 800, 670),
-                
-                # KOS FreeFire
                 ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
                 ("f7",  "KOS FreeFire Panel", "7 Days",  600, 500),
                 ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
-
-                # Bitaim Hack
                 ("bit7",  "Bitaim ⚡", "7 Days",    65, 50),
                 ("bit30", "Bitaim ⚡", "30 Days",   165, 160),
                 ("bit90", "Bitaim ⚡", "3 Months",  380, 340),
                 ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1790),
-
-                # Snake Engine Carrom
                 ("snkc_3d",  "Snake Carrom", "3 Days",  190, 160),
                 ("snkc_10d", "Snake Carrom", "10 Days", 450, 400),
                 ("snkc_30d", "Snake Carrom", "30 Days", 900, 830),
-
-                # Snake Engine 8Ball
                 ("snk8_3d",  "Snake 8Ball", "3 Days",  320, 290),
                 ("snk8_10d", "Snake 8Ball", "10 Days", 650, 630),
                 ("snk8_30d", "Snake 8Ball", "30 Days", 1200, 1150),
@@ -428,11 +448,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         try:
-            await context.bot.send_message(
-                chat_id=ADMIN_ID,
-                text=f"🚨 NEW BITAIM ORDER!\n👤 User: {user_id} ({name})\n🎮 Item: {plan['game']} ({plan['label']})\n💰 Price: ₹{price}\n📧 Gmail: `{text}`\n\nTo reply user: /reply {user_id} Your_Message",
-                parse_mode="Markdown"
-            )
+            for admin_id in ADMINS:
+                await context.bot.send_message(
+                    chat_id=admin_id,
+                    text=f"🚨 NEW BITAIM ORDER!\n👤 User: {user_id} ({name})\n🎮 Item: {plan['game']} ({plan['label']})\n💰 Price: ₹{price}\n📧 Gmail: `{text}`\n\nTo reply user: /reply {user_id} Your_Message",
+                    parse_mode="Markdown"
+                )
         except Exception: pass
         return
 
@@ -459,7 +480,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(caption)
 
     elif text == "📦 Stock":
-        if user_id != ADMIN_ID:
+        if user_id not in ADMINS:
             await update.message.reply_text("❌ Admin command only.")
             return
         await update.message.reply_text(f"```\n{stock_text()}\n```", parse_mode="Markdown")
@@ -479,7 +500,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(msg, reply_markup=inline_markup)
         return
 
-    # --- AIM CARROM KING MENU ---
     if query.data == "aim_menu":
         keyboard = [
             [InlineKeyboardButton("🟢 AIM Normal", callback_data="aim_normal"), InlineKeyboardButton("🔥 AIM Premium (Auto Queue)", callback_data="aim_premium")],
@@ -510,7 +530,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
         return
 
-    # --- KOS MENU ---
     if query.data == "kos_menu":
         keyboard = [
             [InlineKeyboardButton("🎱 8 Ball Key", callback_data="kos_8b")],
@@ -556,7 +575,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # BITAIM MENU
     if query.data == "bitaim_menu":
         p7 = get_price(user_id, "bit7"); p30 = get_price(user_id, "bit30")
         p90 = get_price(user_id, "bit90"); plt = get_price(user_id, "bitlt")
@@ -569,7 +587,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # SNAKE MENU (Carrom & 8Ball)
     if query.data == "snk_menu":
         keyboard = [
             [InlineKeyboardButton("🎯 Snake Carrom", callback_data="snkc_sub"), InlineKeyboardButton("🎱 Snake 8Ball", callback_data="snk8_sub")],
@@ -600,7 +617,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # --- BUYING & CONFIRMATION ---
     if query.data.startswith("buy_"):
         plan_id = query.data.replace("buy_", "")
         plan = db_get_plan(plan_id)
@@ -663,15 +679,15 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(msg, parse_mode="Markdown")
 
         try:
-            await context.bot.send_message(
-                chat_id=ADMIN_ID,
-                text=f"🛒 *NEW KEY PURCHASED!*\n👤 User: {name} ({username})\n🆔 ID: `{user_id}`\n🎮 Item: {plan['game']} - {plan['label']}\n💰 Price: ₹{price}\n💳 Rem. Bal: ₹{new_bal}\n🔑 Key: `{key}`",
-                parse_mode="Markdown"
-            )
+            for admin_id in ADMINS:
+                await context.bot.send_message(
+                    chat_id=admin_id,
+                    text=f"🛒 *NEW KEY PURCHASED!*\n👤 User: {name} ({username})\n🆔 ID: `{user_id}`\n🎮 Item: {plan['game']} - {plan['label']}\n💰 Price: ₹{price}\n💳 Rem. Bal: ₹{new_bal}\n🔑 Key: `{key}`",
+                    parse_mode="Markdown"
+                )
         except Exception: pass
         return
 
-    # --- ORDERS HISTORY ---
     if query.data == "orders_hist":
         orders = db_get_user_orders(user_id)
         if not orders:
@@ -683,7 +699,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(msg, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
         return
 
-    # --- ADD BALANCE ---
     if query.data == "add_bal":
         caption = (
             "💳 Scan & Pay via PhonePe / UPI\n━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -698,7 +713,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=user_id, text=caption)
         return
 
-    # --- BECOME RESELLER ---
     if query.data == "become_reseller":
         await query.edit_message_text(
             f"💎 BECOME AN OFFICIAL RESELLER\n━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -709,7 +723,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # --- PAYMENT VERIFICATION HANDLERS ---
     if query.data.startswith("pay_"):
         parts     = query.data.split("_")
         target_id = int(parts[1])
@@ -752,11 +765,14 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if row: kbd.append(row)
         kbd.append([InlineKeyboardButton("❌ Reject", callback_data=f"pay_{cust_id}_reject")])
         
-        await context.bot.send_photo(
-            chat_id=ADMIN_ID, photo=photo_id,
-            caption=f"💳 *Payment Request*\n🆔 ID: `{cust_id}`\n👤 Name: {name}\n📱 User: {username}\n🏷 Role: {role_lbl}\n💰 Current Bal: ₹{db_get_balance(cust_id)}",
-            reply_markup=InlineKeyboardMarkup(kbd), parse_mode="Markdown"
-        )
+        for admin_id in ADMINS:
+            try:
+                await context.bot.send_photo(
+                    chat_id=admin_id, photo=photo_id,
+                    caption=f"💳 *Payment Request*\n🆔 ID: `{cust_id}`\n👤 Name: {name}\n📱 User: {username}\n🏷 Role: {role_lbl}\n💰 Current Bal: ₹{db_get_balance(cust_id)}",
+                    reply_markup=InlineKeyboardMarkup(kbd), parse_mode="Markdown"
+                )
+            except Exception: pass
         return
 
 async def expire_payment(user_id, context):
@@ -782,27 +798,18 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- ADMIN COMMANDS LIST ---
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     help_text = (
         "🛠 Admin Commands\n\n"
         "Balance:\n/add <id> <amount>\n\n"
-        "Keys:\n/addkey <plan> <key>\n/stock\n/deliver <id> <key>\n/reply <id> <message>\n\n"
+        "Keys & Gist:\n/addkey <plan> <key>\n/genkey <days> <device_id>\n/stock\n/deliver <id> <key>\n/reply <id> <message>\n\n"
         "Prices:\n/setprice <plan> <regular> <reseller>\n/prices\n\n"
-        "Resellers:\n/addreseller <id>\n/removereseller <id>\n/resellers\n\n"
-        "Plan codes:\n"
-        "acn_3d, acn_7d, acn_30d (AIM Normal)\n"
-        "acp_3d, acp_7d, acp_30d (AIM Premium)\n"
-        "b1, b7, b15, b30 (KOS 8B)\n"
-        "c1, c7, c15, c30 (KOS Carrom)\n"
-        "f1, f7, f30 (KOS FF)\n"
-        "bit7, bit30, bit90, bitlt (Bitaim)\n"
-        "snkc_3d, snkc_10d, snkc_30d (Snake Carrom)\n"
-        "snk8_3d, snk8_10d, snk8_30d (Snake 8Ball)"
+        "Resellers:\n/addreseller <id>\n/removereseller <id>\n/resellers"
     )
     await update.message.reply_text(f"```\n{help_text}\n```", parse_mode="Markdown")
 
 async def cmd_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     try:
         target_id = int(context.args[0])
         msg_text  = " ".join(context.args[1:])
@@ -811,7 +818,7 @@ async def cmd_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception: await update.message.reply_text("Usage: /reply <user_id> <message>")
 
 async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     try:
         uid = int(context.args[0]); amount = int(context.args[1])
         new_bal = db_add_balance(uid, amount)
@@ -821,7 +828,7 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception: await update.message.reply_text("Usage: /add <user_id> <amount>")
 
 async def cmd_addkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     try:
         plan = context.args[0].lower(); new_key = context.args[1]
         db_add_key(plan, new_key)
@@ -829,15 +836,15 @@ async def cmd_addkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception: await update.message.reply_text("Usage: /addkey <plan_code> <key>")
 
 async def cmd_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     await update.message.reply_text(f"```\n{stock_text()}\n```", parse_mode="Markdown")
 
 async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     await update.message.reply_text(f"```\n{price_list_text()}\n```", parse_mode="Markdown")
 
 async def cmd_deliver(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     if len(context.args) < 2:
         await update.message.reply_text("Usage: /deliver <user_id> <key>"); return
     uid = int(context.args[0]); key = " ".join(context.args[1:])
@@ -845,7 +852,7 @@ async def cmd_deliver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Key delivered to {uid}")
 
 async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     try:
         plan = context.args[0].lower(); reg = int(context.args[1]); res = int(context.args[2])
         db_set_price(plan, reg, res)
@@ -853,7 +860,7 @@ async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception: await update.message.reply_text("Usage: /setprice <plan_code> <regular> <reseller>")
 
 async def cmd_addreseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     try:
         uid = int(context.args[0])
         db_add_reseller(uid)
@@ -861,7 +868,7 @@ async def cmd_addreseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception: await update.message.reply_text("Usage: /addreseller <user_id>")
 
 async def cmd_removereseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     try:
         uid = int(context.args[0])
         db_remove_reseller(uid)
@@ -869,7 +876,7 @@ async def cmd_removereseller(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except Exception: await update.message.reply_text("Usage: /removereseller <user_id>")
 
 async def cmd_resellers(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID: return
+    if update.effective_user.id not in ADMINS: return
     rlist = db_all_resellers()
     if not rlist:
         await update.message.reply_text("No resellers added yet.")
@@ -887,6 +894,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("reply",          cmd_reply))
     app.add_handler(CommandHandler("add",            cmd_add))
     app.add_handler(CommandHandler("addkey",         cmd_addkey))
+    app.add_handler(CommandHandler("genkey",         genkey))
     app.add_handler(CommandHandler("stock",          cmd_stock))
     app.add_handler(CommandHandler("prices",         cmd_prices))
     app.add_handler(CommandHandler("deliver",        cmd_deliver))
@@ -897,5 +905,6 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("VIP Bot Updated & Running with GitHub Cloud Sync... 🚀")
+    print("VIP Bot Updated & Running with Gist & GitHub Cloud Sync... 🚀")
     app.run_polling()
+
