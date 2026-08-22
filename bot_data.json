@@ -9,7 +9,13 @@
       "amount": 9999999
     }
   ],
-  "keys": [],
+  "keys": [
+    {
+      "id": 1,
+      "plan": "c1",
+      "key": "HGVIPEhRm"
+    }
+  ],
   "resellers": [],
   "prices": [
     {
