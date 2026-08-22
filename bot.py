@@ -1,3 +1,4 @@
+
 import os
 import json
 import asyncio
@@ -370,7 +371,6 @@ def get_main_dashboard(uid, name):
         [InlineKeyboardButton("🥰🔥 Reseller Apply", callback_data="become_reseller")]
     ]
     
-    # Script Key Button - Only visible to Admins
     if uid in ADMINS:
         inline_kbd.insert(4, [InlineKeyboardButton("🛠️ Script Key Generator (Admin Only)", callback_data="script_key_menu")])
 
@@ -481,7 +481,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(msg, reply_markup=inline_markup)
         return
 
-    # SCRIPT KEY MENU (Admin Only)
     if query.data == "script_key_menu":
         if user_id not in ADMINS:
             await query.answer("❌ Admin only option!", show_alert=True)
@@ -795,18 +794,18 @@ async def expire_payment(user_id, context):
 async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id  = update.effective_user.id
     
-    # Handle Script Key Device ID text input from Admin
     if user_id in ADMINS and "script_gen_days" in context.user_data:
         days = context.user_data.pop("script_gen_days")
         device_id = update.message.text.strip()
         
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        new_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        new_entry = f"HGVIP{days}D{device_id}" # ঠিক তোমার চাওয়া ফরম্যাট অনুযায়ী ইউনিক কি
+        gist_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
         
         try:
             raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
             current_data = requests.get(raw_url).text
-            update_gist(current_data + "\n" + new_entry)
+            update_gist(current_data + "\n" + gist_entry)
         except Exception as e:
             print(f"Gist Sync Error: {e}")
 
@@ -881,12 +880,14 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         days = int(context.args[0])
         device_id = context.args[1]
+        
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        new_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        new_entry = f"HGVIP{days}D{device_id}" # ইউনিক কাস্টম কি ফরম্যাট
+        gist_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}" # গিস্টে যাওয়ার ফরম্যাট
         
         raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
         current_data = requests.get(raw_url).text
-        update_gist(current_data + "\n" + new_entry)
+        update_gist(current_data + "\n" + gist_entry)
         
         receipt_msg = (
             f"🎉 *Script Key Generated!* (Admin)\n"
