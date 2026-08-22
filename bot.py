@@ -54,11 +54,13 @@ Thread(target=run_web_server, daemon=True).start()
 def update_gist(content):
     try:
         url = f"https://api.github.com/gists/{GIST_ID}"
-        headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+        headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
         payload = {"files": {FILE_NAME: {"content": content}}}
-        requests.patch(url, headers=headers, json=payload)
+        res = requests.patch(url, headers=headers, json=payload)
+        return res.status_code == 200
     except Exception as e:
         print(f"Gist Update Error: {e}")
+        return False
 
 # --- GITHUB AUTO-SYNC SYSTEM ---
 def push_data_to_github():
@@ -884,7 +886,6 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = int(context.args[0])
         device_id = context.args[1]
         
-        # ইউনিক কি জেনারেশন (HGVIP + দিন + ৬ ডিজিটের র্যান্ডম কোড)
         random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         vip_key = f"HGVIP{days}{random_code}"
         
@@ -893,20 +894,28 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?{time.time()}"
         current_data = requests.get(raw_url).text
-        update_gist(current_data + "\n" + gist_entry)
         
-        receipt_msg = (
-            f"🎉 *Script Key Generated!* (Admin)\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 *Customer:* {update.effective_user.first_name}\n"
-            f"🆔 *User ID:* `{update.effective_user.id}`\n"
-            f"🎮 *Item:* Script KEY ({days} Days)\n"
-            f"📱 *Device ID:* `{device_id}`\n\n"
-            f"🔑 *Your VIP Key (Tap to Copy):*\n"
-            f"`{vip_key}`\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Updated to GitHub Gist successfully!"
-        )
+        # Ensure clean separation with newline
+        updated_data = current_data.strip() + "\n" + gist_entry
+        
+        success = update_gist(updated_data)
+        
+        if success:
+            receipt_msg = (
+                f"🎉 *Script Key Generated!* (Admin)\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 *Customer:* {update.effective_user.first_name}\n"
+                f"🆔 *User ID:* `{update.effective_user.id}`\n"
+                f"🎮 *Item:* Script KEY ({days} Days)\n"
+                f"📱 *Device ID:* `{device_id}`\n\n"
+                f"🔑 *Your VIP Key (Tap to Copy):*\n"
+                f"`{vip_key}`\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"✅ Updated to GitHub Gist successfully!"
+            )
+        else:
+            receipt_msg = f"❌ Failed to update GitHub Gist! Check GITHUB_TOKEN permissions."
+            
         await update.message.reply_text(receipt_msg, parse_mode="Markdown")
     except Exception as e:
         await update.message.reply_text(f"Format: /scriptkey <days> <device_id>\nError: {e}")
