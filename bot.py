@@ -369,7 +369,8 @@ def get_main_dashboard(uid, name):
         [InlineKeyboardButton("💵 Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 Orders History", callback_data="orders_hist")],
         [InlineKeyboardButton("🥰🔥 Reseller Apply", callback_data="become_reseller")]
     ]
-    # Admin দের জন্য আলাদা Script Key অপশন বা বাটন মেনুতে যোগ করা যাবে চাইলে
+    
+    # Script Key Button - Only visible to Admins
     if uid in ADMINS:
         inline_kbd.insert(4, [InlineKeyboardButton("🛠️ Script Key Generator (Admin Only)", callback_data="script_key_menu")])
 
@@ -483,25 +484,24 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # SCRIPT KEY MENU (Admin Only)
     if query.data == "script_key_menu":
         if user_id not in ADMINS:
-            await query.answer("❌ This option is only for Admin!", show_alert=True)
+            await query.answer("❌ Admin only option!", show_alert=True)
             return
         keyboard = [
-            [InlineKeyboardButton("🛠️ 1 Day", callback_data="sk_gen_1"), InlineKeyboardButton("🛠️ 7 Days", callback_data="sk_gen_7")],
-            [InlineKeyboardButton("🛠️ 30 Days", callback_data="sk_gen_30"), InlineKeyboardButton("🛠️ Custom Days", callback_data="sk_gen_custom")],
+            [InlineKeyboardButton("🛠️ 1 Day", callback_data="sk_d_1"), InlineKeyboardButton("🛠️ 7 Days", callback_data="sk_d_7")],
+            [InlineKeyboardButton("🛠️ 30 Days", callback_data="sk_d_30"), InlineKeyboardButton("🛠️ Custom Days", callback_data="sk_d_custom")],
             [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
         ]
-        await query.edit_message_text("🛠️ *SCRIPT KEY GIST GENERATOR*\n\nSelect plan duration:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+        await query.edit_message_text("🛠️ *SCRIPT KEY GENERATOR*\n\nSelect duration:", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
         return
 
-    if query.data.startswith("sk_gen_"):
+    if query.data.startswith("sk_d_"):
         if user_id not in ADMINS: return
-        days_str = query.data.replace("sk_gen_", "")
-        if days_str == "custom":
-            await query.edit_message_text("Please use command:\n`/scriptkey <days> <device_id>`", parse_mode="Markdown")
+        d_val = query.data.replace("sk_d_", "")
+        if d_val == "custom":
+            await query.edit_message_text("Use command:\n`/scriptkey <days> <device_id>`", parse_mode="Markdown")
             return
-        
-        days = int(days_str)
-        context.user_data["script_days"] = days
+        days = int(d_val)
+        context.user_data["script_gen_days"] = days
         await query.edit_message_text(f"⏱ Selected: {days} Days\n\nNow send the **Device ID** as a message in chat:", parse_mode="Markdown")
         return
 
@@ -794,6 +794,37 @@ async def expire_payment(user_id, context):
 
 async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id  = update.effective_user.id
+    
+    # Handle Script Key Device ID text input from Admin
+    if user_id in ADMINS and "script_gen_days" in context.user_data:
+        days = context.user_data.pop("script_gen_days")
+        device_id = update.message.text.strip()
+        
+        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
+        new_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        
+        try:
+            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
+            current_data = requests.get(raw_url).text
+            update_gist(current_data + "\n" + new_entry)
+        except Exception as e:
+            print(f"Gist Sync Error: {e}")
+
+        receipt_msg = (
+            f"🎉 *Script Key Generated!* (Admin)\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 *Customer:* {update.effective_user.first_name}\n"
+            f"🆔 *User ID:* `{user_id}`\n"
+            f"🎮 *Item:* Script KEY ({days} Days)\n"
+            f"📱 *Device ID:* `{device_id}`\n\n"
+            f"🔑 *Your VIP Key (Tap to Copy):*\n"
+            f"`{new_entry}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Updated to GitHub Gist successfully!"
+        )
+        await update.message.reply_text(receipt_msg, parse_mode="Markdown")
+        return
+
     if user_id in payment_requests:
         old = payment_requests[user_id].get("task")
         if old: old.cancel()
@@ -814,16 +845,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Balance:\n/add <id> <amount>\n\n"
         "Keys & Gist:\n/addkey <plan> <key>\n/scriptkey <days> <device_id>\n/stock\n/deliver <id> <key>\n/reply <id> <message>\n\n"
         "Prices:\n/setprice <plan> <regular> <reseller>\n/prices\n\n"
-        "Resellers:\n/addreseller <id>\n/removereseller <id>\n/resellers\n\n"
-        "Hack Plan Codes:\n"
-        "acn_3d, acn_7d, acn_30d (AIM Normal)\n"
-        "acp_3d, acp_7d, acp_30d (AIM Premium)\n"
-        "b1, b7, b15, b30 (KOS 8B)\n"
-        "c1, c7, c15, c30 (KOS Carrom)\n"
-        "f1, f7, f30 (KOS FF)\n"
-        "bit7, bit30, bit90, bitlt (Bitaim)\n"
-        "snkc_3d, snkc_10d, snkc_30d (Snake Carrom)\n"
-        "snk8_3d, snk8_10d, snk8_30d (Snake 8Ball)"
+        "Resellers:\n/addreseller <id>\n/removereseller <id>\n/resellers"
     )
     await update.message.reply_text(f"```\n{help_text}\n```", parse_mode="Markdown")
 
@@ -861,10 +883,24 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         device_id = context.args[1]
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
         new_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        
         raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
         current_data = requests.get(raw_url).text
         update_gist(current_data + "\n" + new_entry)
-        await update.message.reply_text(f"✅ Script Key Generated & Updated to Gist!\n`{new_entry}`", parse_mode="Markdown")
+        
+        receipt_msg = (
+            f"🎉 *Script Key Generated!* (Admin)\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 *Customer:* {update.effective_user.first_name}\n"
+            f"🆔 *User ID:* `{update.effective_user.id}`\n"
+            f"🎮 *Item:* Script KEY ({days} Days)\n"
+            f"📱 *Device ID:* `{device_id}`\n\n"
+            f"🔑 *Your VIP Key (Tap to Copy):*\n"
+            f"`{new_entry}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Updated to GitHub Gist successfully!"
+        )
+        await update.message.reply_text(receipt_msg, parse_mode="Markdown")
     except Exception as e:
         await update.message.reply_text(f"Format: /scriptkey <days> <device_id>\nError: {e}")
 
