@@ -1,4 +1,3 @@
-
 import os
 import json
 import asyncio
@@ -7,6 +6,8 @@ import base64
 import requests
 import sqlite3
 import datetime
+import random
+import string
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
@@ -798,12 +799,14 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = context.user_data.pop("script_gen_days")
         device_id = update.message.text.strip()
         
+        random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        vip_key = f"HGVIP{days}{random_code}"
+        
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        new_entry = f"HGVIP{days}D{device_id}" # ঠিক তোমার চাওয়া ফরম্যাট অনুযায়ী ইউনিক কি
         gist_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
         
         try:
-            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
+            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?{time.time()}"
             current_data = requests.get(raw_url).text
             update_gist(current_data + "\n" + gist_entry)
         except Exception as e:
@@ -817,7 +820,7 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🎮 *Item:* Script KEY ({days} Days)\n"
             f"📱 *Device ID:* `{device_id}`\n\n"
             f"🔑 *Your VIP Key (Tap to Copy):*\n"
-            f"`{new_entry}`\n"
+            f"`{vip_key}`\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"Updated to GitHub Gist successfully!"
         )
@@ -881,11 +884,14 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = int(context.args[0])
         device_id = context.args[1]
         
-        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        new_entry = f"HGVIP{days}D{device_id}" # ইউনিক কাস্টম কি ফরম্যাট
-        gist_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}" # গিস্টে যাওয়ার ফরম্যাট
+        # ইউনিক কি জেনারেশন (HGVIP + দিন + ৬ ডিজিটের র্যান্ডম কোড)
+        random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        vip_key = f"HGVIP{days}{random_code}"
         
-        raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}"
+        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
+        gist_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        
+        raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?{time.time()}"
         current_data = requests.get(raw_url).text
         update_gist(current_data + "\n" + gist_entry)
         
@@ -897,7 +903,7 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🎮 *Item:* Script KEY ({days} Days)\n"
             f"📱 *Device ID:* `{device_id}`\n\n"
             f"🔑 *Your VIP Key (Tap to Copy):*\n"
-            f"`{new_entry}`\n"
+            f"`{vip_key}`\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
             f"Updated to GitHub Gist successfully!"
         )
