@@ -19,6 +19,11 @@
       "id": 2,
       "plan": "snk",
       "key": "3"
+    },
+    {
+      "id": 3,
+      "plan": "snkc",
+      "key": "3d"
     }
   ],
   "resellers": [],
