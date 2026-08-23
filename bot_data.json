@@ -29,6 +29,11 @@
       "id": 4,
       "plan": "snkc3",
       "key": "HHfdss"
+    },
+    {
+      "id": 6,
+      "plan": "snkc_3d",
+      "key": "BsGtss"
     }
   ],
   "resellers": [],
