@@ -14,6 +14,11 @@
       "id": 1,
       "plan": "k30",
       "key": "hhsbsbsbs"
+    },
+    {
+      "id": 2,
+      "plan": "snk",
+      "key": "3"
     }
   ],
   "resellers": [],
