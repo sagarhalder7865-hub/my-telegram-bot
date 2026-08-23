@@ -63,16 +63,63 @@ def run_web_server():
 Thread(target=run_web_server, daemon=True).start()
 
 # --- GIST AUTO-UPDATER FOR SCRIPT KEYS ---
-def update_gist(content):
+def append_to_gist(device_id, days):
     try:
-        url = f"https://api.github.com/gists/{GIST_ID}"
-        headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-        payload = {"files": {FILE_NAME: {"content": content}}}
-        res = requests.patch(url, headers=headers, json=payload)
-        return res.status_code == 200
+        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
+        new_entry = f"HGTOKEN=={expiry}={device_id}"
+        
+        token = GITHUB_TOKEN.strip() if GITHUB_TOKEN else ""
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "HappyGamerTelegramBot/1.0"
+        }
+        
+        # 1. Fetch current content directly from Gist API
+        get_url = f"https://api.github.com/gists/{GIST_ID}"
+        get_res = requests.get(get_url, headers=headers)
+        
+        if get_res.status_code != 200:
+            # Fallback to token prefix
+            headers["Authorization"] = f"token {token}"
+            get_res = requests.get(get_url, headers=headers)
+            
+        current_content = ""
+        if get_res.status_code == 200:
+            files_data = get_res.json().get("files", {})
+            if FILE_NAME in files_data:
+                current_content = files_data[FILE_NAME].get("content", "")
+        else:
+            # Fallback to public raw read
+            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?t={int(time.time())}"
+            raw_res = requests.get(raw_url)
+            if raw_res.status_code == 200:
+                current_content = raw_res.text
+
+        # Combine with new line
+        if current_content:
+            updated_content = current_content.strip() + "\n" + new_entry
+        else:
+            updated_content = "STATUS=ON\n" + new_entry
+
+        # 2. Patch to GitHub Gist
+        patch_payload = {
+            "files": {
+                FILE_NAME: {
+                    "content": updated_content
+                }
+            }
+        }
+        
+        patch_res = requests.patch(get_url, headers=headers, json=patch_payload)
+        
+        if patch_res.status_code in [200, 201]:
+            return True, expiry, None
+        else:
+            err_msg = patch_res.json().get("message", patch_res.text)
+            return False, expiry, f"Status {patch_res.status_code}: {err_msg}"
     except Exception as e:
-        print(f"Gist Update Error: {e}")
-        return False
+        return False, None, str(e)
 
 # --- GITHUB CLOUD AUTO-SYNC ---
 def push_data_to_github():
@@ -83,10 +130,12 @@ def push_data_to_github():
         content_str = json.dumps(data_dump, indent=2)
         content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
         
+        token = GITHUB_TOKEN.strip()
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
         headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "HappyGamerTelegramBot"
         }
         
         sha = None
@@ -109,10 +158,12 @@ def pull_data_from_github():
     if not GITHUB_TOKEN or not GITHUB_REPO:
         return None
     try:
+        token = GITHUB_TOKEN.strip()
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
         headers = {
-            "Authorization": f"token {GITHUB_TOKEN}",
-            "Accept": "application/vnd.github.v3+json"
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "HappyGamerTelegramBot"
         }
         res = requests.get(url, headers=headers)
         if res.status_code == 200:
@@ -471,6 +522,42 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db_register_user(user_id, name, username)
 
+    # 1. ADMIN SCRIPT KEY GENERATION VIA CHAT INPUT
+    if user_id in ADMINS and "script_gen_days" in context.user_data:
+        days = context.user_data.pop("script_gen_days")
+        device_id = text.strip()
+        
+        random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        vip_key = f"HGVIP{days}{random_code}"
+        
+        status_msg = await update.message.reply_text("⏳ <i>Updating GitHub Gist status.txt & Generating Key...</i>", parse_mode="HTML")
+        
+        success, expiry, err = append_to_gist(device_id, days)
+        
+        if success:
+            receipt_msg = (
+                f"╔═══════════════════════════╗\n"
+                f"║  👑 <b>SCRIPT KEY GENERATED!</b>   ║\n"
+                f"╚═══════════════════════════╝\n"
+                f"👤 <b>Admin:</b> {name}\n"
+                f"⏳ <b>Validity:</b> {days} Days (Expires: <code>{expiry}</code>)\n"
+                f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
+                f"☁️ <b>GitHub Gist:</b> <i>Updated Successfully ✅</i>\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
+                f"<code>{vip_key}</code>"
+            )
+            await status_msg.edit_text(receipt_msg, parse_mode="HTML")
+        else:
+            await status_msg.edit_text(
+                f"❌ <b>GitHub Gist Update Failed!</b>\n\n"
+                f"<b>Reason:</b> <code>{err}</code>\n\n"
+                f"👉 Make sure your <b>GITHUB_TOKEN</b> has the <code>gist</code> permission.",
+                parse_mode="HTML"
+            )
+        return
+
+    # 2. BITAIM GMAIL HANDLER
     if user_id in awaiting_gmail:
         plan_id = awaiting_gmail.pop(user_id)
         plan    = db_get_plan(plan_id)
@@ -966,38 +1053,6 @@ async def expire_payment(user_id, context):
 async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id  = update.effective_user.id
     
-    if user_id in ADMINS and "script_gen_days" in context.user_data:
-        days = context.user_data.pop("script_gen_days")
-        device_id = update.message.text.strip() if update.message.text else "UNKNOWN_DEVICE"
-        
-        random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        vip_key = f"HGVIP{days}{random_code}"
-        
-        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        gist_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
-        
-        try:
-            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?{time.time()}"
-            current_data = requests.get(raw_url).text
-            updated_data = current_data.strip() + "\n" + gist_entry
-            update_gist(updated_data)
-        except Exception as e:
-            print(f"Gist Sync Error: {e}")
-
-        receipt_msg = (
-            f"╔═══════════════════════════╗\n"
-            f"║  👑 <b>SCRIPT KEY GENERATED</b>   ║\n"
-            f"╚═══════════════════════════╝\n"
-            f"👤 <b>Admin:</b> {update.effective_user.first_name}\n"
-            f"⏳ <b>Validity:</b> {days} Days\n"
-            f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"🔑 <b>ONE-TAP COPY KEY:</b>\n\n"
-            f"<code>{vip_key}</code>"
-        )
-        await update.message.reply_text(receipt_msg, parse_mode="HTML")
-        return
-
     if user_id in payment_requests:
         old = payment_requests[user_id].get("task")
         if old: old.cancel()
@@ -1097,40 +1152,43 @@ async def cmd_addkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
+    if len(context.args) < 2:
+        await update.message.reply_text("💡 <b>Format:</b> <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>", parse_mode="HTML")
+        return
     try:
         days = int(context.args[0])
-        device_id = context.args[1]
+        device_id = context.args[1].strip()
         
         random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         vip_key = f"HGVIP{days}{random_code}"
         
-        expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        gist_entry = f"HGTOKEN=Hgvip653={expiry}={device_id}"
+        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist...</i>", parse_mode="HTML")
         
-        raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?{time.time()}"
-        current_data = requests.get(raw_url).text
-        updated_data = current_data.strip() + "\n" + gist_entry
-        
-        success = update_gist(updated_data)
+        success, expiry, err = append_to_gist(device_id, days)
         
         if success:
             receipt_msg = (
                 f"╔═══════════════════════════╗\n"
-                f"║  👑 <b>SCRIPT KEY GENERATED</b>   ║\n"
+                f"║  👑 <b>SCRIPT KEY GENERATED!</b>   ║\n"
                 f"╚═══════════════════════════╝\n"
-                f"👤 <b>Client:</b> {update.effective_user.first_name}\n"
-                f"⏳ <b>Validity:</b> {days} Days\n"
+                f"👤 <b>Admin:</b> {update.effective_user.first_name}\n"
+                f"⏳ <b>Validity:</b> {days} Days (Expires: <code>{expiry}</code>)\n"
                 f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
+                f"☁️ <b>GitHub Gist:</b> <i>Updated Successfully ✅</i>\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
                 f"<code>{vip_key}</code>"
             )
+            await status_msg.edit_text(receipt_msg, parse_mode="HTML")
         else:
-            receipt_msg = "❌ Failed to update GitHub Gist! Verify GITHUB_TOKEN permissions."
-            
-        await update.message.reply_text(receipt_msg, parse_mode="HTML")
+            await status_msg.edit_text(
+                f"❌ <b>GitHub Gist Update Failed!</b>\n\n"
+                f"<b>Reason:</b> <code>{err}</code>\n\n"
+                f"👉 Make sure Render Environment Variable <b>GITHUB_TOKEN</b> has Gist permissions.",
+                parse_mode="HTML"
+            )
     except Exception as e:
-        await update.message.reply_text(f"Format: <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\nError: {e}", parse_mode="HTML")
+        await update.message.reply_text(f"❌ <b>Error:</b> <code>{e}</code>", parse_mode="HTML")
 
 async def cmd_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
