@@ -62,7 +62,7 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
-# --- GIST AUTO-UPDATER FOR SCRIPT KEYS ---
+# --- GIST AUTO-UPDATER & AUTO-EXPIRY CLEANER ---
 def get_auth_headers():
     token = GITHUB_TOKEN.strip() if GITHUB_TOKEN else ""
     return {
@@ -72,9 +72,50 @@ def get_auth_headers():
     }
 
 def generate_short_key():
-    # ঠিক ৮ অক্ষরের প্রিমিয়াম VIP কি (যেমন: HG9K4B2A)
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     return f"HG{random_chars}"
+
+def clean_expired_lines(content_text):
+    """
+    যেসকল কীয়ের এক্সপায়ারি ডেট আজকের থেকে পুরনো সেগুলোকে স্বয়ংক্রিয়ভাবে মুছে ফেলে।
+    Format: HGTOKEN=<KEY>=<YYYYMMDD>=<DEVICE_ID>
+    """
+    today_str = datetime.datetime.now().strftime("%Y%m%d")
+    today_int = int(today_str)
+    
+    cleaned_lines = []
+    removed_count = 0
+    
+    for line in content_text.splitlines():
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+        
+        if line_clean.startswith("HGTOKEN=") or line_clean.startswith("HGTOKEN=="):
+            parts = line_clean.split("=")
+            # Remove empty elements caused by ==
+            parts = [p for p in parts if p != ""]
+            
+            # parts will be like ['HGTOKEN', 'KEY', 'YYYYMMDD', 'DEVICE_ID']
+            # or legacy ['HGTOKEN', 'YYYYMMDD', 'DEVICE_ID']
+            exp_date_str = None
+            for p in parts:
+                if len(p) == 8 and p.isdigit():
+                    exp_date_str = p
+                    break
+            
+            if exp_date_str:
+                try:
+                    exp_date_int = int(exp_date_str)
+                    if exp_date_int < today_int:
+                        removed_count += 1
+                        continue # Skip expired line (auto deleted)
+                except Exception:
+                    pass
+        
+        cleaned_lines.append(line_clean)
+        
+    return "\n".join(cleaned_lines), removed_count
 
 def append_to_gist(vip_key, device_id, days):
     try:
@@ -82,8 +123,6 @@ def append_to_gist(vip_key, device_id, days):
             return False, None, "GITHUB_TOKEN is missing in Render!"
 
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        
-        # ফরম্যাট: HGTOKEN=Key=Date=DeviceID
         new_entry = f"HGTOKEN={vip_key}={expiry}={device_id}"
         
         headers = get_auth_headers()
@@ -91,25 +130,26 @@ def append_to_gist(vip_key, device_id, days):
         
         # 1. Fetch current gist content
         get_res = requests.get(get_url, headers=headers, timeout=10)
-        
         current_content = ""
         if get_res.status_code == 200:
             files_data = get_res.json().get("files", {})
             if FILE_NAME in files_data:
                 current_content = files_data[FILE_NAME].get("content", "")
         else:
-            # Fallback to public raw read
             raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?t={int(time.time())}"
             raw_res = requests.get(raw_url, timeout=10)
             if raw_res.status_code == 200:
                 current_content = raw_res.text
 
-        if current_content:
-            updated_content = current_content.strip() + "\n" + new_entry
+        # 2. Filter out all expired keys automatically!
+        filtered_content, removed = clean_expired_lines(current_content)
+
+        if filtered_content:
+            updated_content = filtered_content.strip() + "\n" + new_entry
         else:
             updated_content = "STATUS=ON\n" + new_entry
 
-        # 2. Patch to GitHub Gist
+        # 3. Patch to GitHub Gist
         patch_payload = {
             "files": {
                 FILE_NAME: {
@@ -127,6 +167,51 @@ def append_to_gist(vip_key, device_id, days):
             return False, expiry, f"Status {patch_res.status_code}: {err_details}"
     except Exception as e:
         return False, None, str(e)
+
+def purge_expired_gist_keys():
+    """Background cleaner that periodically removes expired keys"""
+    if not GITHUB_TOKEN:
+        return 0
+    try:
+        headers = get_auth_headers()
+        get_url = f"https://api.github.com/gists/{GIST_ID}"
+        get_res = requests.get(get_url, headers=headers, timeout=10)
+        if get_res.status_code != 200:
+            return 0
+        
+        files_data = get_res.json().get("files", {})
+        if FILE_NAME not in files_data:
+            return 0
+            
+        current_content = files_data[FILE_NAME].get("content", "")
+        cleaned_content, removed = clean_expired_lines(current_content)
+        
+        if removed > 0:
+            patch_payload = {
+                "files": {
+                    FILE_NAME: {
+                        "content": cleaned_content
+                    }
+                }
+            }
+            requests.patch(get_url, headers=headers, json=patch_payload, timeout=10)
+        return removed
+    except Exception as e:
+        print(f"Purge Error: {e}")
+        return 0
+
+# --- PERIODIC CLEANER THREAD (RUNS EVERY 1 HOUR) ---
+def auto_prune_worker():
+    while True:
+        time.sleep(3600) # Every 1 hour
+        try:
+            purged = purge_expired_gist_keys()
+            if purged > 0:
+                print(f"🧹 Auto-Cleaned {purged} expired keys from GitHub Gist!")
+        except Exception:
+            pass
+
+Thread(target=auto_prune_worker, daemon=True).start()
 
 # --- GITHUB CLOUD AUTO-SYNC ---
 def push_data_to_github():
@@ -527,7 +612,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ছোট ৮ অক্ষরের VIP Key
         vip_key = generate_short_key()
         
-        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist status.txt & Generating Key...</i>", parse_mode="HTML")
+        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist, Cleaning Expired Keys & Generating...</i>", parse_mode="HTML")
         
         success, expiry, err = append_to_gist(vip_key, device_id, days)
         
@@ -539,7 +624,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"👤 <b>Admin:</b> {name}\n"
                 f"⏳ <b>Validity:</b> {days} Days (Expires: <code>{expiry}</code>)\n"
                 f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
-                f"☁️ <b>GitHub Gist:</b> <i>Updated Successfully ✅</i>\n"
+                f"☁️ <b>GitHub Gist:</b> <i>Updated & Auto-Cleaned ✅</i>\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
                 f"<code>{vip_key}</code>"
@@ -1105,7 +1190,7 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
-# --- GIST DIAGNOSTIC TOOL ---
+# --- GIST DIAGNOSTIC & CLEANER TOOLS ---
 async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     
@@ -1145,6 +1230,22 @@ async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await status_msg.edit_text(f"❌ <b>Request Exception:</b> <code>{e}</code>", parse_mode="HTML")
 
+async def cmd_cleangist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ম্যানুয়াল কমান্ড: সব পুরনো এক্সপায়ার্ড কি সাথে সাথে ডিলিট করে ফাইল ক্লিন করার জন্য"""
+    if update.effective_user.id not in ADMINS: return
+    
+    status_msg = await update.message.reply_text("🧹 <i>Scanning Gist & Purging Expired Keys...</i>", parse_mode="HTML")
+    removed = purge_expired_gist_keys()
+    
+    await status_msg.edit_text(
+        f"╔═══════════════════════════╗\n"
+        f"║   🧹 <b>GIST CLEANUP COMPLETE</b>  ║\n"
+        f"╚═══════════════════════════╝\n"
+        f"🗑️ <b>Expired Keys Removed:</b> {removed} Pcs\n"
+        f"✨ <i>GitHub Gist `status.txt` is now 100% clean & optimized!</i>",
+        parse_mode="HTML"
+    )
+
 # --- ADMIN COMMAND PANEL ---
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1154,7 +1255,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╚═══════════════════════════╝\n"
         "📢 <b>Mass Broadcast:</b>\n• <code>/broadcast &lt;offer text&gt;</code>\n\n"
         "💳 <b>Wallet Controls:</b>\n• <code>/add &lt;id&gt; &lt;amount&gt;</code>\n\n"
-        "🔑 <b>Key & Inventory Controls:</b>\n• <code>/addkey &lt;plan&gt; &lt;key&gt;</code>\n• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n• <code>/testgist</code> (Check GitHub Token)\n• <code>/stock</code>\n• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n• <code>/reply &lt;id&gt; &lt;msg&gt;</code>\n\n"
+        "🔑 <b>Key & Inventory Controls:</b>\n• <code>/addkey &lt;plan&gt; &lt;key&gt;</code>\n• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n• <code>/cleangist</code> (Purge Expired Keys)\n• <code>/testgist</code> (Check GitHub Token)\n• <code>/stock</code>\n• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n• <code>/reply &lt;id&gt; &lt;msg&gt;</code>\n\n"
         "💎 <b>Price Management:</b>\n• <code>/setprice &lt;plan&gt; &lt;regular&gt; &lt;reseller&gt;</code>\n• <code>/prices</code>\n\n"
         "👑 <b>Reseller Management:</b>\n• <code>/addreseller &lt;id&gt;</code>\n• <code>/removereseller &lt;id&gt;</code>\n• <code>/resellers</code>"
     )
@@ -1196,10 +1297,9 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = int(context.args[0])
         device_id = context.args[1].strip()
         
-        # ছোট ৮ অক্ষরের VIP Key
         vip_key = generate_short_key()
         
-        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist...</i>", parse_mode="HTML")
+        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist & Auto-Pruning Expired Keys...</i>", parse_mode="HTML")
         
         success, expiry, err = append_to_gist(vip_key, device_id, days)
         
@@ -1211,7 +1311,7 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"👤 <b>Admin:</b> {update.effective_user.first_name}\n"
                 f"⏳ <b>Validity:</b> {days} Days (Expires: <code>{expiry}</code>)\n"
                 f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
-                f"☁️ <b>GitHub Gist:</b> <i>Updated Successfully ✅</i>\n"
+                f"☁️ <b>GitHub Gist:</b> <i>Updated & Cleaned ✅</i>\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
                 f"<code>{vip_key}</code>"
@@ -1285,6 +1385,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("help",           cmd_help))
     app.add_handler(CommandHandler("broadcast",      cmd_broadcast))
     app.add_handler(CommandHandler("sendall",        cmd_broadcast))
+    app.add_handler(CommandHandler("cleangist",      cmd_cleangist))
     app.add_handler(CommandHandler("testgist",       cmd_testgist))
     app.add_handler(CommandHandler("reply",          cmd_reply))
     app.add_handler(CommandHandler("add",            cmd_add))
