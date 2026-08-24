@@ -71,13 +71,20 @@ def get_auth_headers():
         "User-Agent": "HappyGamerApp"
     }
 
-def append_to_gist(device_id, days):
+def generate_short_key():
+    # ঠিক ৮ অক্ষরের প্রিমিয়াম VIP কি (যেমন: HG9K4B2A)
+    random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    return f"HG{random_chars}"
+
+def append_to_gist(vip_key, device_id, days):
     try:
         if not GITHUB_TOKEN:
             return False, None, "GITHUB_TOKEN is missing in Render!"
 
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
-        new_entry = f"HGTOKEN=={expiry}={device_id}"
+        
+        # ফরম্যাট: HGTOKEN=Key=Date=DeviceID
+        new_entry = f"HGTOKEN={vip_key}={expiry}={device_id}"
         
         headers = get_auth_headers()
         get_url = f"https://api.github.com/gists/{GIST_ID}"
@@ -517,12 +524,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = context.user_data.pop("script_gen_days")
         device_id = text.strip()
         
-        random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        vip_key = f"HGVIP{days}{random_code}"
+        # ছোট ৮ অক্ষরের VIP Key
+        vip_key = generate_short_key()
         
         status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist status.txt & Generating Key...</i>", parse_mode="HTML")
         
-        success, expiry, err = append_to_gist(device_id, days)
+        success, expiry, err = append_to_gist(vip_key, device_id, days)
         
         if success:
             receipt_msg = (
@@ -1189,12 +1196,12 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         days = int(context.args[0])
         device_id = context.args[1].strip()
         
-        random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        vip_key = f"HGVIP{days}{random_code}"
+        # ছোট ৮ অক্ষরের VIP Key
+        vip_key = generate_short_key()
         
         status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist...</i>", parse_mode="HTML")
         
-        success, expiry, err = append_to_gist(device_id, days)
+        success, expiry, err = append_to_gist(vip_key, device_id, days)
         
         if success:
             receipt_msg = (
