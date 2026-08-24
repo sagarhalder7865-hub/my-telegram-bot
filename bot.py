@@ -20,8 +20,8 @@ TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMINS   = [8546348748, 8737475340]
 ADMIN_USERNAME = "@happy_gamer2"
 
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-GITHUB_REPO  = os.environ.get("GITHUB_REPO", "sagarhalder7865-hub/my-telegram-bot")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
+GITHUB_REPO  = os.environ.get("GITHUB_REPO", "sagarhalder7865-hub/my-telegram-bot").strip()
 DATA_FILE    = "bot_data.json"
 
 # Gist Config for Script Key Automation
@@ -63,27 +63,28 @@ def run_web_server():
 Thread(target=run_web_server, daemon=True).start()
 
 # --- GIST AUTO-UPDATER FOR SCRIPT KEYS ---
+def get_auth_headers():
+    token = GITHUB_TOKEN.strip() if GITHUB_TOKEN else ""
+    return {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "HappyGamerApp"
+    }
+
 def append_to_gist(device_id, days):
     try:
+        if not GITHUB_TOKEN:
+            return False, None, "GITHUB_TOKEN is missing in Render!"
+
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
         new_entry = f"HGTOKEN=={expiry}={device_id}"
         
-        token = GITHUB_TOKEN.strip() if GITHUB_TOKEN else ""
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "HappyGamerTelegramBot/1.0"
-        }
-        
-        # 1. Fetch current content directly from Gist API
+        headers = get_auth_headers()
         get_url = f"https://api.github.com/gists/{GIST_ID}"
-        get_res = requests.get(get_url, headers=headers)
         
-        if get_res.status_code != 200:
-            # Fallback to token prefix
-            headers["Authorization"] = f"token {token}"
-            get_res = requests.get(get_url, headers=headers)
-            
+        # 1. Fetch current gist content
+        get_res = requests.get(get_url, headers=headers, timeout=10)
+        
         current_content = ""
         if get_res.status_code == 200:
             files_data = get_res.json().get("files", {})
@@ -92,11 +93,10 @@ def append_to_gist(device_id, days):
         else:
             # Fallback to public raw read
             raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?t={int(time.time())}"
-            raw_res = requests.get(raw_url)
+            raw_res = requests.get(raw_url, timeout=10)
             if raw_res.status_code == 200:
                 current_content = raw_res.text
 
-        # Combine with new line
         if current_content:
             updated_content = current_content.strip() + "\n" + new_entry
         else:
@@ -111,13 +111,13 @@ def append_to_gist(device_id, days):
             }
         }
         
-        patch_res = requests.patch(get_url, headers=headers, json=patch_payload)
+        patch_res = requests.patch(get_url, headers=headers, json=patch_payload, timeout=10)
         
         if patch_res.status_code in [200, 201]:
             return True, expiry, None
         else:
-            err_msg = patch_res.json().get("message", patch_res.text)
-            return False, expiry, f"Status {patch_res.status_code}: {err_msg}"
+            err_details = patch_res.json().get("message", patch_res.text)
+            return False, expiry, f"Status {patch_res.status_code}: {err_details}"
     except Exception as e:
         return False, None, str(e)
 
@@ -130,16 +130,11 @@ def push_data_to_github():
         content_str = json.dumps(data_dump, indent=2)
         content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
         
-        token = GITHUB_TOKEN.strip()
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "HappyGamerTelegramBot"
-        }
+        headers = get_auth_headers()
         
         sha = None
-        get_res = requests.get(url, headers=headers)
+        get_res = requests.get(url, headers=headers, timeout=10)
         if get_res.status_code == 200:
             sha = get_res.json().get("sha")
             
@@ -150,7 +145,7 @@ def push_data_to_github():
         if sha:
             payload["sha"] = sha
             
-        requests.put(url, headers=headers, json=payload)
+        requests.put(url, headers=headers, json=payload, timeout=10)
     except Exception as e:
         print(f"GitHub Sync Error: {e}")
 
@@ -158,14 +153,9 @@ def pull_data_from_github():
     if not GITHUB_TOKEN or not GITHUB_REPO:
         return None
     try:
-        token = GITHUB_TOKEN.strip()
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "HappyGamerTelegramBot"
-        }
-        res = requests.get(url, headers=headers)
+        headers = get_auth_headers()
+        res = requests.get(url, headers=headers, timeout=10)
         if res.status_code == 200:
             content_b64 = res.json().get("content", "")
             return json.loads(base64.b64decode(content_b64).decode("utf-8"))
@@ -530,7 +520,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         vip_key = f"HGVIP{days}{random_code}"
         
-        status_msg = await update.message.reply_text("⏳ <i>Updating GitHub Gist status.txt & Generating Key...</i>", parse_mode="HTML")
+        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist status.txt & Generating Key...</i>", parse_mode="HTML")
         
         success, expiry, err = append_to_gist(device_id, days)
         
@@ -552,7 +542,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await status_msg.edit_text(
                 f"❌ <b>GitHub Gist Update Failed!</b>\n\n"
                 f"<b>Reason:</b> <code>{err}</code>\n\n"
-                f"👉 Make sure your <b>GITHUB_TOKEN</b> has the <code>gist</code> permission.",
+                f"👉 Make sure you checked <b>[x] gist</b> in GitHub token settings.",
                 parse_mode="HTML"
             )
         return
@@ -958,7 +948,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "╔═══════════════════════════╗\n"
             "║    💳 <b>SECURE UPI PAYMENT</b>     ║\n"
             "╚═══════════════════════════╝\n\n"
-            "📌 <b>UPI ID:</b> <code>sagarhalder22@axl</code> <i>(Tap to copy)</i>\n\n"
+            "📌 <b>Official UPI ID:</b> <code>sagarhalder22@axl</code> <i>(Tap to copy)</i>\n\n"
             "1️⃣ স্ক্যানার দিয়ে পেমেন্ট সম্পন্ন করুন।\n"
             "2️⃣ পেমেন্টের স্ক্রিনশটটি এই চ্যাটে সেন্ড করুন।\n"
             "⏰ ৫ মিনিটের মধ্যে ভেরিফাই করে ব্যালেন্স যোগ হবে!"
@@ -1108,6 +1098,46 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
+# --- GIST DIAGNOSTIC TOOL ---
+async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    
+    if not GITHUB_TOKEN:
+        await update.message.reply_text("❌ <b>GITHUB_TOKEN</b> is not found in environment variables!", parse_mode="HTML")
+        return
+        
+    masked_token = GITHUB_TOKEN[:4] + "..." + GITHUB_TOKEN[-4:] if len(GITHUB_TOKEN) > 8 else "***"
+    headers = get_auth_headers()
+    get_url = f"https://api.github.com/gists/{GIST_ID}"
+    
+    status_msg = await update.message.reply_text("🔍 <i>Testing GitHub Gist connection & token permissions...</i>", parse_mode="HTML")
+    
+    try:
+        res = requests.get(get_url, headers=headers, timeout=10)
+        scopes = res.headers.get("X-OAuth-Scopes", "No Scopes Found")
+        
+        if res.status_code == 200:
+            owner = res.json().get("owner", {}).get("login", "Unknown")
+            files = list(res.json().get("files", {}).keys())
+            await status_msg.edit_text(
+                f"✅ <b>GITHUB GIST CONNECTION OK!</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🔑 <b>Token:</b> <code>{masked_token}</code>\n"
+                f"👤 <b>Gist Owner:</b> <code>{owner}</code>\n"
+                f"🏷️ <b>Scopes:</b> <code>{scopes}</code>\n"
+                f"📄 <b>Files found:</b> <code>{', '.join(files)}</code>\n\n"
+                f"<i>Your token is ready to generate and update keys!</i>",
+                parse_mode="HTML"
+            )
+        else:
+            await status_msg.edit_text(
+                f"❌ <b>Gist Connection Error ({res.status_code})</b>\n\n"
+                f"<b>Response:</b> <code>{res.text}</code>\n\n"
+                f"👉 Go to GitHub -> Settings -> Developer Settings -> Personal Access Tokens -> Click your token -> Check <b>[x] gist</b> and save!",
+                parse_mode="HTML"
+            )
+    except Exception as e:
+        await status_msg.edit_text(f"❌ <b>Request Exception:</b> <code>{e}</code>", parse_mode="HTML")
+
 # --- ADMIN COMMAND PANEL ---
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1117,7 +1147,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╚═══════════════════════════╝\n"
         "📢 <b>Mass Broadcast:</b>\n• <code>/broadcast &lt;offer text&gt;</code>\n\n"
         "💳 <b>Wallet Controls:</b>\n• <code>/add &lt;id&gt; &lt;amount&gt;</code>\n\n"
-        "🔑 <b>Key & Inventory Controls:</b>\n• <code>/addkey &lt;plan&gt; &lt;key&gt;</code>\n• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n• <code>/stock</code>\n• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n• <code>/reply &lt;id&gt; &lt;msg&gt;</code>\n\n"
+        "🔑 <b>Key & Inventory Controls:</b>\n• <code>/addkey &lt;plan&gt; &lt;key&gt;</code>\n• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n• <code>/testgist</code> (Check GitHub Token)\n• <code>/stock</code>\n• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n• <code>/reply &lt;id&gt; &lt;msg&gt;</code>\n\n"
         "💎 <b>Price Management:</b>\n• <code>/setprice &lt;plan&gt; &lt;regular&gt; &lt;reseller&gt;</code>\n• <code>/prices</code>\n\n"
         "👑 <b>Reseller Management:</b>\n• <code>/addreseller &lt;id&gt;</code>\n• <code>/removereseller &lt;id&gt;</code>\n• <code>/resellers</code>"
     )
@@ -1184,7 +1214,7 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await status_msg.edit_text(
                 f"❌ <b>GitHub Gist Update Failed!</b>\n\n"
                 f"<b>Reason:</b> <code>{err}</code>\n\n"
-                f"👉 Make sure Render Environment Variable <b>GITHUB_TOKEN</b> has Gist permissions.",
+                f"👉 Use <code>/testgist</code> to test your token.",
                 parse_mode="HTML"
             )
     except Exception as e:
@@ -1248,6 +1278,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("help",           cmd_help))
     app.add_handler(CommandHandler("broadcast",      cmd_broadcast))
     app.add_handler(CommandHandler("sendall",        cmd_broadcast))
+    app.add_handler(CommandHandler("testgist",       cmd_testgist))
     app.add_handler(CommandHandler("reply",          cmd_reply))
     app.add_handler(CommandHandler("add",            cmd_add))
     app.add_handler(CommandHandler("addkey",         cmd_addkey))
