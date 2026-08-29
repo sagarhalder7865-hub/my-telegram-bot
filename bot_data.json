@@ -5,7 +5,6 @@
   "resellers": [],
   "prices": [],
   "order_history": [],
-  "banned_users": [],
-  "used_utrs": [],
-  "referrals": []
+  "referrals": [],
+  "banned_users": []
 }
