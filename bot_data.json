@@ -8,7 +8,12 @@
       "joined_at": "2026-08-29 14:59:11"
     }
   ],
-  "balances": [],
+  "balances": [
+    {
+      "user_id": 8737475340,
+      "amount": 5000
+    }
+  ],
   "keys": [],
   "resellers": [],
   "prices": [
