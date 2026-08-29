@@ -8,6 +8,7 @@ import sqlite3
 import datetime
 import random
 import string
+import re
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
@@ -46,7 +47,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Ultra High Speed Online</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Ultra High Speed Online (AIM-AI & ₹1 Referral Active)</p>
         </body>
         </html>
         """
@@ -78,7 +79,6 @@ def generate_short_key():
 def clean_expired_lines(content_text):
     today_str = datetime.datetime.now().strftime("%Y%m%d")
     today_int = int(today_str)
-    
     cleaned_lines = []
     removed_count = 0
     
@@ -103,7 +103,6 @@ def clean_expired_lines(content_text):
                         continue
                 except Exception:
                     pass
-        
         cleaned_lines.append(line_clean)
         
     return "\n".join(cleaned_lines), removed_count
@@ -233,9 +232,13 @@ def export_database_json():
         resellers = [dict(r) for r in db.execute("SELECT * FROM resellers").fetchall()]
         prices = [dict(r) for r in db.execute("SELECT * FROM prices").fetchall()]
         orders = [dict(r) for r in db.execute("SELECT * FROM order_history").fetchall()]
+        banned = [dict(r) for r in db.execute("SELECT * FROM banned_users").fetchall()]
+        utrs = [dict(r) for r in db.execute("SELECT * FROM used_utrs").fetchall()]
+        referrals = [dict(r) for r in db.execute("SELECT * FROM referrals").fetchall()]
     return {
         "users": users, "balances": balances, "keys": keys,
-        "resellers": resellers, "prices": prices, "order_history": orders
+        "resellers": resellers, "prices": prices, "order_history": orders,
+        "banned_users": banned, "used_utrs": utrs, "referrals": referrals
     }
 
 # --- DATABASE SETUP ---
@@ -251,6 +254,7 @@ def init_db():
                 user_id INTEGER PRIMARY KEY,
                 first_name TEXT,
                 username TEXT,
+                referred_by INTEGER DEFAULT 0,
                 joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS balances (
@@ -281,6 +285,23 @@ def init_db():
                 key_delivered TEXT NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS banned_users (
+                user_id INTEGER PRIMARY KEY,
+                reason TEXT,
+                banned_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS used_utrs (
+                utr TEXT PRIMARY KEY,
+                user_id INTEGER,
+                amount INTEGER,
+                used_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS referrals (
+                referred_user INTEGER PRIMARY KEY,
+                referrer_id INTEGER,
+                reward_paid INTEGER DEFAULT 1,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         
         gh_data = pull_data_from_github()
@@ -291,9 +312,13 @@ def init_db():
             db.execute("DELETE FROM resellers")
             db.execute("DELETE FROM prices")
             db.execute("DELETE FROM order_history")
+            db.execute("DELETE FROM banned_users")
+            db.execute("DELETE FROM used_utrs")
+            db.execute("DELETE FROM referrals")
             
             for u in gh_data.get("users", []):
-                db.execute("INSERT OR REPLACE INTO users (user_id, first_name, username) VALUES (?,?,?)", (u["user_id"], u.get("first_name",""), u.get("username","")))
+                db.execute("INSERT OR REPLACE INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)", 
+                           (u["user_id"], u.get("first_name",""), u.get("username",""), u.get("referred_by", 0)))
             for b in gh_data.get("balances", []):
                 db.execute("INSERT OR REPLACE INTO balances (user_id, amount) VALUES (?,?)", (b["user_id"], b["amount"]))
             for k in gh_data.get("keys", []):
@@ -306,15 +331,32 @@ def init_db():
             for o in gh_data.get("order_history", []):
                 db.execute("INSERT OR REPLACE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
                            (o["id"], o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o["timestamp"]))
+            for ban in gh_data.get("banned_users", []):
+                db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (ban["user_id"], ban.get("reason", "Fraud Attempt")))
+            for ut in gh_data.get("used_utrs", []):
+                db.execute("INSERT OR REPLACE INTO used_utrs (utr, user_id, amount) VALUES (?,?,?)", (ut["utr"], ut.get("user_id", 0), ut.get("amount", 0)))
+            for ref in gh_data.get("referrals", []):
+                db.execute("INSERT OR REPLACE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,?)", (ref["referred_user"], ref["referrer_id"], ref.get("reward_paid", 1)))
         else:
             db.execute("DELETE FROM prices")
             defaults = [
+                # 👿 AIM-AI ENGINE (CARROM)
+                ("aim_1d",  "AIM-AI Carrom", "1 Day",   120, 100),
+                ("aim_3d",  "AIM-AI Carrom", "3 Days",  200, 180),
+                ("aim_7d",  "AIM-AI Carrom", "7 Days",  300, 260),
+                ("aim_15d", "AIM-AI Carrom", "15 Days", 500, 490),
+                ("aim_30d", "AIM-AI Carrom", "30 Days", 830, 780),
+                ("aim_90d", "AIM-AI Carrom", "90 Days", 2100, 2000),
+
+                # AIM CARROM KING
                 ("acn_3d",  "AIM Carrom Normal", "3 Days",  250, 220),
                 ("acn_7d",  "AIM Carrom Normal", "1 Week",  360, 330),
                 ("acn_30d", "AIM Carrom Normal", "1 Month", 1000, 950),
                 ("acp_3d",  "AIM Carrom Premium", "3 Days",  310, 280),
                 ("acp_7d",  "AIM Carrom Premium", "1 Week",  480, 460),
                 ("acp_30d", "AIM Carrom Premium", "1 Month", 1250, 1180),
+
+                # KOS ENGINE
                 ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
                 ("b7",  "KOS 8 Ball", "7 Days",  500, 450),
                 ("b15", "KOS 8 Ball", "15 Days", 900, 800),
@@ -326,10 +368,14 @@ def init_db():
                 ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
                 ("f7",  "KOS FreeFire Panel", "7 Days",  600, 500),
                 ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
+
+                # BITAIM
                 ("bit7",  "Bitaim ⚡", "7 Days",    65, 50),
                 ("bit30", "Bitaim ⚡", "30 Days",   165, 160),
                 ("bit90", "Bitaim ⚡", "3 Months",  380, 340),
                 ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1790),
+
+                # SNAKE ENGINE
                 ("snkc_3d",  "Snake Carrom", "3 Days",  190, 160),
                 ("snkc_10d", "Snake Carrom", "10 Days", 450, 400),
                 ("snkc_30d", "Snake Carrom", "30 Days", 900, 830),
@@ -342,13 +388,55 @@ def init_db():
                 defaults
             )
 
-def db_register_user(user_id, first_name, username):
+def db_is_banned(user_id):
     with get_db() as db:
-        db.execute(
-            "INSERT INTO users (user_id, first_name, username) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET first_name=?, username=?",
-            (user_id, first_name, username, first_name, username)
-        )
+        return db.execute("SELECT 1 FROM banned_users WHERE user_id=?", (user_id,)).fetchone() is not None
+
+def db_ban_user(user_id, reason="Fake Payment / Fraud Attempt"):
+    with get_db() as db:
+        db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (user_id, reason))
     push_data_to_github()
+
+def db_unban_user(user_id):
+    with get_db() as db:
+        db.execute("DELETE FROM banned_users WHERE user_id=?", (user_id,))
+    push_data_to_github()
+
+def db_is_utr_used(utr):
+    with get_db() as db:
+        return db.execute("SELECT 1 FROM used_utrs WHERE utr=?", (utr.strip(),)).fetchone() is not None
+
+def db_record_utr(utr, user_id, amount):
+    with get_db() as db:
+        db.execute("INSERT OR REPLACE INTO used_utrs (utr, user_id, amount) VALUES (?,?,?)", (utr.strip(), user_id, amount))
+    push_data_to_github()
+
+def db_register_user(user_id, first_name, username, referrer_id=0):
+    with get_db() as db:
+        existing = db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,)).fetchone()
+        if not existing:
+            db.execute(
+                "INSERT INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)",
+                (user_id, first_name, username, referrer_id)
+            )
+            # Process ₹1 Referral Bonus
+            if referrer_id > 0 and referrer_id != user_id:
+                db_add_balance(referrer_id, 1)
+                db.execute("INSERT OR IGNORE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,1)", (user_id, referrer_id))
+                push_data_to_github()
+                return referrer_id
+        else:
+            db.execute(
+                "UPDATE users SET first_name=?, username=? WHERE user_id=?",
+                (first_name, username, user_id)
+            )
+    push_data_to_github()
+    return None
+
+def db_get_referral_count(user_id):
+    with get_db() as db:
+        row = db.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=?", (user_id,)).fetchone()
+        return row[0] if row else 0
 
 def db_get_all_users():
     with get_db() as db:
@@ -447,26 +535,31 @@ def stock_text():
         "╔═══════════════════════════╗",
         "║  📦 <b>LIVE WAREHOUSE INVENTORY</b>  ║",
         "╚═══════════════════════════╝",
-        "\n👑 <b>AIM CARROM KING INVENTORY:</b>"
+        "\n👿 <b>AIM-AI CARROM ENGINE:</b>"
     ]
+    for p in ["aim_1d", "aim_3d", "aim_7d", "aim_15d", "aim_30d", "aim_90d"]:
+        plan = db_get_plan(p)
+        if plan: lines.append(f"  🔥 <code>{plan['label']:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+
+    lines.append("\n👑 <b>AIM CARROM KING INVENTORY:</b>")
     for p in ["acn_3d","acn_7d","acn_30d","acp_3d","acp_7d","acp_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  💎 <code>{plan['game']} ({plan['label']})</code> ➜ <b>{db_count_keys(p)} Pcs</b>")
+        if plan: lines.append(f"  💎 <code>{plan['label']:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n🔥 <b>KOS ENGINE KEYS:</b>")
     for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  ⚡ <code>{plan['game']} ({plan['label']})</code> ➜ <b>{db_count_keys(p)} Pcs</b>")
+        if plan: lines.append(f"  ⚡ <code>{plan['game']} ({plan['label']})</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
     
     lines.append("\n⚡ <b>BITAIM HACK SLOTS:</b>")
     for p in ["bit7","bit30","bit90","bitlt"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🔮 <code>Bitaim {plan['label']:10}</code> ➜ <b>{db_count_keys(p)} Pcs</b>")
+        if plan: lines.append(f"  🔮 <code>Bitaim {plan['label']:10}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n🐍 <b>SNAKE ENGINE SLOTS:</b>")
     for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🐍 <code>{plan['game']} ({plan['label']})</code> ➜ <b>{db_count_keys(p)} Pcs</b>")
+        if plan: lines.append(f"  🐍 <code>{plan['game']} ({plan['label']})</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
         
     lines.append("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)
@@ -476,31 +569,36 @@ def price_list_text():
         "╔═══════════════════════════╗",
         "║  💎 <b>OFFICIAL VIP PRICE CATALOG</b> ║",
         "╚═══════════════════════════╝",
-        "\n👑 <b>AIM CARROM KING (Normal):</b>"
+        "\n👿 <b>AIM-AI ENGINE (CARROM POOL):</b>"
     ]
+    for p in ["aim_1d", "aim_3d", "aim_7d", "aim_15d", "aim_30d", "aim_90d"]:
+        plan = db_get_plan(p)
+        if plan: lines.append(f"  🔥 <b>{plan['label']:8}</b> ➜ <code>₹{plan['regular']}</code> <i>[VIP: ₹{plan['reseller']}]</i>")
+
+    lines.append("\n👑 <b>AIM CARROM KING (Normal):</b>")
     for p in ["acn_3d","acn_7d","acn_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  💎 <b>{plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[Reseller: ₹{plan['reseller']}]</i>")
+        if plan: lines.append(f"  💎 <b>{plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[VIP: ₹{plan['reseller']}]</i>")
         
     lines.append("\n👑 <b>AIM CARROM KING (Premium Auto Queue):</b>")
     for p in ["acp_3d","acp_7d","acp_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  ⚡ <b>{plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[Reseller: ₹{plan['reseller']}]</i>")
+        if plan: lines.append(f"  ⚡ <b>{plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[VIP: ₹{plan['reseller']}]</i>")
 
     lines.append("\n🔥 <b>KOS ENGINE VIP KEYS:</b>")
     for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🔮 <b>{plan['game']} {plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[Reseller: ₹{plan['reseller']}]</i>")
+        if plan: lines.append(f"  🔮 <b>{plan['game']} {plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[VIP: ₹{plan['reseller']}]</i>")
     
     lines.append("\n⚡ <b>BITAIM PREMIUM HACK:</b>")
     for p in ["bit7","bit30","bit90","bitlt"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🎯 <b>Bitaim {plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[Reseller: ₹{plan['reseller']}]</i>")
+        if plan: lines.append(f"  🎯 <b>Bitaim {plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[VIP: ₹{plan['reseller']}]</i>")
 
     lines.append("\n🐍 <b>SNAKE ENGINE VIP:</b>")
     for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🐍 <b>{plan['game']} {plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[Reseller: ₹{plan['reseller']}]</i>")
+        if plan: lines.append(f"  🐍 <b>{plan['game']} {plan['label']}</b> ➜ <code>₹{plan['regular']}</code> <i>[VIP: ₹{plan['reseller']}]</i>")
         
     lines.append("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)
@@ -508,29 +606,30 @@ def price_list_text():
 pending_orders   = {}
 payment_requests = {}
 awaiting_gmail   = {}
+awaiting_utr     = {}
 PAYMENT_TIMEOUT  = 300
 
-# 🌟 YOUR EXACT ORIGINAL DASHBOARD WITH RGB NEON BORDERS
+# 🌟 OFFICIAL LUXURY DASHBOARD
 def get_main_dashboard(uid, name):
     role = "👑 VIP Reseller [Elite]" if db_is_reseller(uid) else "👤 Verified Customer"
     bal  = db_get_balance(uid)
     last_buy = db_get_last_purchase(uid)
 
     inline_kbd = [
+        [InlineKeyboardButton("👿 AIM-AI CARROM ENGINE 🔥", callback_data="aim_ai_menu")],
         [InlineKeyboardButton("👑 AIM CARROM KING", callback_data="aim_menu")],
         [InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu"), InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu")],
         [InlineKeyboardButton("🐍 Snake Engine", callback_data="snk_menu")],
+        [InlineKeyboardButton("🎁 👥 Referral & Earn (₹1 Per Friend)", callback_data="referral_menu")],
         [InlineKeyboardButton("💳 ➕ Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 🛍️ My Orders", callback_data="orders_hist")],
         [InlineKeyboardButton("📥 📂 Download App", url="https://t.me/hgfileall")],
         [InlineKeyboardButton("💎 👑 Apply For Reseller Panel", callback_data="become_reseller")]
     ]
     
     if uid in ADMINS:
-        inline_kbd.insert(5, [InlineKeyboardButton("🛠️ ⚡ Script Key Generator [Admin]", callback_data="script_key_menu")])
+        inline_kbd.insert(6, [InlineKeyboardButton("🛠️ ⚡ Script Key Generator [Admin]", callback_data="script_key_menu")])
 
-    # 🌟 আপনার অরিজিনাল টেক্সট + ৪ রকম RGB ব্যাকগ্রাউন্ড ফ্রেম
     msg = (
-        "<blockquote>"
         "╔═══════════════════════════╗\n"
         "║  👑 <b>HAPPY GAMER VIP STORE</b> 👑  ║\n"
         "╚═══════════════════════════╝\n"
@@ -542,18 +641,17 @@ def get_main_dashboard(uid, name):
         f"📦 <b>Recent Purchase:</b> <i>{last_buy}</i>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "📖 <b>Instant Buying Guide (কীভাবে কি কিনবেন):</b>\n"
-        "1️⃣ <b>Add Balance</b> বাটন চেপে অ্যাকাউন্টে টাকা যোগ করুন।\n"
-        "2️⃣ আপনার পছন্দের <b>VIP Hack Engine</b> সিলেক্ট করুন।\n"
-        "3️⃣ <b>Confirm</b> করলেই তাৎক্ষণিক ১-ট্যাপ কপি কি পেয়ে যাবেন!"
-        "</blockquote>"
+        "1️⃣ <b>Add Balance</b> চেপে কিউআর স্ক্যান করে টাকা যোগ করুন।\n"
+        "2️⃣ <b>Referral & Earn</b> চেপে বন্ধুদের ইনভাইট করে ফ্রি টাকা ইনকাম করুন!\n"
+        "3️⃣ আপনার পছন্দের <b>VIP Hack Engine</b> সিলেক্ট করুন এবং সাথে সাথে কি পেয়ে যান!"
     )
     return msg, InlineKeyboardMarkup(inline_kbd)
 
 def get_reply_keyboard():
     return ReplyKeyboardMarkup([
         ["🔑 All Hack Key buy", "Check Balance 💰"],
-        ["➕Add Balance 💰", "📦 Stock"],
-        ["📞 Admin Help"]
+        ["🎁 Referral & Earn 💰", "➕Add Balance 💰"],
+        ["📦 Stock", "📞 Admin Help"]
     ], resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -561,8 +659,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.effective_user.first_name
     username = update.effective_user.username or ""
     
-    db_register_user(uid, name, username)
+    if db_is_banned(uid):
+        await update.message.reply_text("🚫 <b>YOUR ACCOUNT IS PERMANENTLY BANNED!</b>\n\nReason: <i>Fake Payment / Fraud Attempt detected by Anti-Fraud Shield.</i>", parse_mode="HTML")
+        return
+
+    # Check Referral Parameter (e.g. /start ref_123456)
+    referrer_id = 0
+    if context.args and len(context.args) > 0:
+        param = context.args[0]
+        if param.startswith("ref_"):
+            try:
+                referrer_id = int(param.replace("ref_", ""))
+            except Exception: pass
+
+    ref_giver = db_register_user(uid, name, username, referrer_id)
     
+    # Notify referrer of ₹1 reward
+    if ref_giver:
+        try:
+            await context.bot.send_message(
+                chat_id=ref_giver,
+                text=(
+                    "🎉 <b>CONGRATULATIONS! REFERRAL BONUS CREDITED!</b>\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"👤 <b>New Joined User:</b> {name} (@{username})\n"
+                    "💰 <b>Earned Reward:</b> +<code>₹1.00</code> credited to your wallet! 💳\n\n"
+                    "👉 <i>Keep sharing your referral link to earn more!</i>"
+                ),
+                parse_mode="HTML"
+            )
+        except Exception: pass
+
     msg, inline_markup = get_main_dashboard(uid, name)
     await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_reply_keyboard())
     await update.message.reply_text("👇 <b>Select your VIP Hack to Proceed:</b>", parse_mode="HTML", reply_markup=inline_markup)
@@ -573,9 +700,84 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name    = update.effective_user.first_name
     username = update.effective_user.username or ""
 
+    if db_is_banned(user_id):
+        await update.message.reply_text("🚫 <b>ACCESS BLOCKED:</b> You are blacklisted from this bot due to fraudulent activity.", parse_mode="HTML")
+        return
+
     db_register_user(user_id, name, username)
 
-    # 1. ADMIN SCRIPT KEY GENERATION VIA CHAT INPUT
+    # 1. ANTI-FRAUD UTR INPUT HANDLER
+    if user_id in awaiting_utr:
+        utr_code = text.strip().replace(" ", "")
+        
+        if len(utr_code) < 8 or not re.match(r'^[A-Za-z0-9]+$', utr_code):
+            await update.message.reply_text(
+                "❌ <b>INVALID UTR / REFERENCE NUMBER!</b>\n\n"
+                "Please check your GPay / PhonePe / Paytm payment receipt and enter the correct **12-digit numeric UTR / Ref No**:\n"
+                "<i>Example: 423589123456</i>",
+                parse_mode="HTML"
+            )
+            return
+
+        if db_is_utr_used(utr_code):
+            await update.message.reply_text(
+                "🚨 <b>FRAUD DETECTED!</b>\n\n"
+                "⚠️ This UTR / Ref No is **ALREADY USED OR CLAIMED**!\n"
+                "<i>Fake spoof screenshots or reused UTRs are strictly recorded and will result in an instant permanent ban.</i>",
+                parse_mode="HTML"
+            )
+            return
+
+        photo_id = awaiting_utr.pop(user_id)
+        task = asyncio.create_task(expire_payment(user_id, context))
+        payment_requests[user_id] = {
+            "timestamp": time.time(),
+            "photo_id": photo_id,
+            "utr": utr_code,
+            "task": task
+        }
+
+        await update.message.reply_text(
+            f"✅ <b>UTR CAPTURED:</b> <code>{utr_code}</code>\n\n"
+            "⏳ <i>Forwarding receipt & bank reference to Merchant Security Desk for instant credit...</i>",
+            parse_mode="HTML"
+        )
+
+        role_lbl = "👑 Reseller" if db_is_reseller(user_id) else "👤 Customer"
+        
+        amounts = [100, 120, 180, 200, 260, 300, 490, 500, 780, 830, 2000, 2100, 50, 60, 65, 150, 160, 165, 190, 220, 230, 250, 280, 290, 310, 320, 330, 340, 360, 380, 400, 410, 450, 460, 480, 600, 630, 650, 670, 750, 800, 850, 870, 900, 950, 1000, 1150, 1180, 1200, 1250, 1400, 1500, 1600, 1790, 1800, 1860]
+        row, kbd = [], []
+        for amt in amounts:
+            row.append(InlineKeyboardButton(f"₹{amt}", callback_data=f"pay_{user_id}_{amt}"))
+            if len(row) == 3: kbd.append(row); row = []
+        if row: kbd.append(row)
+        
+        kbd.append([InlineKeyboardButton("❌ Reject Payment", callback_data=f"pay_{user_id}_reject")])
+        kbd.append([InlineKeyboardButton("🚨 Ban & Blacklist Scammer", callback_data=f"ban_{user_id}")])
+
+        for admin_id in ADMINS:
+            try:
+                await context.bot.send_photo(
+                    chat_id=admin_id, photo=photo_id,
+                    caption=(
+                        "🔔 <b>NEW VERIFIED PAYMENT SUBMISSION</b>\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"👤 <b>Customer ID:</b> <code>{user_id}</code>\n"
+                        f"📝 <b>Name:</b> {name}\n"
+                        f"🔗 <b>Username:</b> @{username}\n"
+                        f"🏷️ <b>Role:</b> {role_lbl}\n"
+                        f"💳 <b>Current Bal:</b> ₹{db_get_balance(user_id)}\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"🛡️ <b>SUBMITTED BANK UTR:</b>\n"
+                        f"<code>{utr_code}</code> <i>(Match with Bank Statement)</i>"
+                    ),
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup(kbd)
+                )
+            except Exception: pass
+        return
+
+    # 2. ADMIN SCRIPT KEY GENERATION VIA CHAT INPUT
     if user_id in ADMINS and "script_gen_days" in context.user_data:
         days = context.user_data.pop("script_gen_days")
         device_id = text.strip()
@@ -588,7 +790,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if success:
             receipt_msg = (
-                "<blockquote>"
                 "╔═══════════════════════════╗\n"
                 "║  👑 <b>SCRIPT KEY GENERATED!</b>   ║\n"
                 "╚═══════════════════════════╝\n"
@@ -599,7 +800,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 "🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
                 f"<code>{vip_key}</code>"
-                "</blockquote>"
             )
             await status_msg.edit_text(receipt_msg, parse_mode="HTML")
         else:
@@ -611,7 +811,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         return
 
-    # 2. BITAIM GMAIL HANDLER
+    # 3. BITAIM GMAIL HANDLER
     if user_id in awaiting_gmail:
         plan_id = awaiting_gmail.pop(user_id)
         plan    = db_get_plan(plan_id)
@@ -628,7 +828,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db_record_order(user_id, plan['game'], plan['label'], price, f"Gmail: {text}")
 
         success_msg = (
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║  🎉 <b>BITAIM ORDER CONFIRMED</b>  ║\n"
             "╚═══════════════════════════╝\n"
@@ -638,7 +837,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💳 <b>Remaining Balance:</b> ₹{new_bal}\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             "⚡ <i>Admin has been notified. Activation inside 10 minutes!</i>"
-            "</blockquote>"
         )
 
         await update.message.reply_text(success_msg, parse_mode="HTML")
@@ -668,29 +866,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bal = db_get_balance(user_id)
         role = " [👑 VIP Reseller]" if db_is_reseller(user_id) else " [Customer]"
         await update.message.reply_text(
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║      💳 <b>WALLET OVERVIEW</b>       ║\n"
             "╚═══════════════════════════╝\n"
             f"💰 <b>Available Balance:</b> <code>₹{bal}.00</code>\n"
             f"🏷️ <b>Account Rank:</b> <b>{role}</b>\n\n"
-            "👉 <i>Click 'Add Balance' to deposit instant funds!</i>"
-            "</blockquote>",
+            "👉 <i>Click 'Add Balance' to deposit funds or 'Referral' to earn free cash!</i>",
             parse_mode="HTML"
         )
 
+    elif text in ["🎁 Referral & Earn 💰", "/referral", "/ref"]:
+        await send_referral_panel(update, context, user_id)
+
     elif text in ["➕Add Balance 💰", "➕ Add Balance"]:
         caption = (
-            "<blockquote>"
-            "╔═══════════════════════════╗\n"
-            "║    💳 <b>SECURE UPI PAYMENT</b>     ║\n"
-            "╚═══════════════════════════╝\n\n"
-            "📌 <b>Official UPI ID:</b> <code>sagarhalder22@axl</code> <i>(Tap to copy)</i>\n\n"
-            "⚡ <b>Instructions:</b>\n"
-            "1️⃣ Scan QR Code & complete payment.\n"
-            "2️⃣ Send the payment screenshot in this chat.\n"
-            "3️⃣ Funds will be added instantly inside 5 minutes!"
-            "</blockquote>"
+            "╔═══════════════════════════════════╗\n"
+            "║ 🛡️ <b>HAPPY GAMER OFFICIAL MERCHANT</b> ║\n"
+            "╚═══════════════════════════════════╝\n"
+            "⚡ <b>Bank-Grade Instant Auto Deposit Terminal</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "📌 <b>Official Verified UPI ID:</b>\n"
+            "👉 <code>sagarhalder22@axl</code> <i>(Tap to Copy)</i>\n\n"
+            "🔒 <b>ANTI-FRAUD VERIFIED STEPS:</b>\n"
+            "1️⃣ Scan & pay via <b>PhonePe / GPay / Paytm / BHIM</b>.\n"
+            "2️⃣ এই চ্যাটে <b>পেমেন্ট স্ক্রিনশট</b> সেন্ড করুন।\n"
+            "3️⃣ স্ক্রিনশটের পর ব্যাংক স্টেটমেন্টের <b>১২-সংখ্যার আসল UTR / Ref No</b> টাইপ করে দিন।\n\n"
+            "⚠️ <i>WARNING: Fake payment apps/spoofs will lead to immediate auto-blacklist & permanent ban!</i>"
         )
         if os.path.exists(QR_PATH):
             with open(QR_PATH, "rb") as f:
@@ -707,47 +908,104 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "📞 Admin Help":
         await cmd_help(update, context)
 
+# --- REFERRAL PANEL DISPATCHER ---
+async def send_referral_panel(update_or_query, context, user_id):
+    bot_info = await context.bot.get_me()
+    bot_username = bot_info.username
+    ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+    ref_count = db_get_referral_count(user_id)
+    
+    msg = (
+        "╔═══════════════════════════╗\n"
+        "║  🎁 <b>REFERRAL & EARN CASH</b> 🎁   ║\n"
+        "╚═══════════════════════════╝\n"
+        "✨ <i>বন্ধুদের ইনভাইট করুন এবং ফ্রি ওয়ালেট ব্যালেন্স জিতে নিন!</i>\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👥 <b>Total Invited Friends:</b> <b>{ref_count} Members</b>\n"
+        f"💰 <b>Total Referral Earnings:</b> <code>₹{ref_count * 1}.00</code>\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "💎 <b>HOW TO EARN ₹1 PER FRIEND:</b>\n"
+        "1️⃣ আপনার বন্ধুদের নিচের রেফারেল লিংকটি পাঠান।\n"
+        "2️⃣ আপনার লিংক দিয়ে যে-ই বটে প্রথমবার স্টার্ট করবে, সাথে সাথে আপনার একাউন্টে <b>₹১.০০</b> যোগ হবে!\n\n"
+        f"🔗 <b>Your Exclusive Referral Link:</b>\n"
+        f"<code>{ref_link}</code> <i>(Tap to Copy)</i>"
+    )
+    
+    kbd = [
+        [InlineKeyboardButton("📢 Share Referral Link", url=f"https://t.me/share/url?url={ref_link}&text={requests.utils.quote('🔥 Happy Gamer VIP Bot! Get 100% working game hack keys instantly. Join now:')}")],
+        [InlineKeyboardButton("◀️ Back to Main Menu", callback_data="back_main")]
+    ]
+    
+    if hasattr(update_or_query, 'edit_message_text'):
+        await update_or_query.edit_message_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(kbd))
+    else:
+        await update_or_query.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(kbd))
+
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query   = update.callback_query
     user_id = query.from_user.id
     name    = query.from_user.first_name
     await query.answer()
 
+    if db_is_banned(user_id):
+        await query.answer("🚫 You are banned from using this bot!", show_alert=True)
+        return
+
     if query.data == "back_main":
         msg, inline_markup = get_main_dashboard(user_id, name)
         await query.edit_message_text(msg, parse_mode="HTML", reply_markup=inline_markup)
         return
 
-    if query.data == "script_key_menu":
-        if user_id not in ADMINS:
-            await query.answer("❌ Admin only option!", show_alert=True)
-            return
-        keyboard = [
-            [InlineKeyboardButton("⚡ 1 Day License", callback_data="sk_d_1"), InlineKeyboardButton("⚡ 7 Days License", callback_data="sk_d_7")],
-            [InlineKeyboardButton("⚡ 30 Days License", callback_data="sk_d_30"), InlineKeyboardButton("⚡ Custom Duration", callback_data="sk_d_custom")],
-            [InlineKeyboardButton("◀️ Return to Main", callback_data="back_main")]
-        ]
-        await query.edit_message_text(
-            "<blockquote>"
-            "╔═══════════════════════════╗\n"
-            "║   🛠️ <b>SCRIPT KEY GENERATOR</b>   ║\n"
-            "╚═══════════════════════════╝\n\n"
-            "Select license validity duration:"
-            "</blockquote>",
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+    if query.data == "referral_menu":
+        await send_referral_panel(query, context, user_id)
         return
 
-    if query.data.startswith("sk_d_"):
+    # ADMIN BAN SCAMMER HANDLER
+    if query.data.startswith("ban_"):
         if user_id not in ADMINS: return
-        d_val = query.data.replace("sk_d_", "")
-        if d_val == "custom":
-            await query.edit_message_text("💡 <b>Use syntax:</b>\n<code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>", parse_mode="HTML")
-            return
-        days = int(d_val)
-        context.user_data["script_gen_days"] = days
-        await query.edit_message_text(f"Selected: <b>{days} Days License</b>\n\n👉 Now enter the <b>Device ID</b> in chat:", parse_mode="HTML")
+        target_uid = int(query.data.split("_")[1])
+        db_ban_user(target_uid, "Fake payment / forged screenshot scam attempt")
+        req = payment_requests.pop(target_uid, None)
+        if req and req.get("task"): req["task"].cancel()
+        
+        try:
+            await context.bot.send_message(
+                chat_id=target_uid,
+                text="🚫 <b>PERMANENTLY BANNED & BLACKLISTED!</b>\n\nYour recent payment submission was flagged as **FAKE / SPOOFED**. Your account has been permanently blocked.",
+                parse_mode="HTML"
+            )
+        except Exception: pass
+        
+        await query.edit_message_caption(f"🚨 <b>SCAMMER BLACKLISTED! User ID: {target_uid} permanently banned.</b>", parse_mode="HTML")
+        return
+
+    # --- 👿 AIM-AI CARROM ENGINE MENU ---
+    if query.data == "aim_ai_menu":
+        p1 = get_price(user_id, "aim_1d"); p3 = get_price(user_id, "aim_3d")
+        p7 = get_price(user_id, "aim_7d"); p15 = get_price(user_id, "aim_15d")
+        p30 = get_price(user_id, "aim_30d"); p90 = get_price(user_id, "aim_90d")
+
+        keyboard = [
+            [InlineKeyboardButton(f"⚡ 01 Day (₹{p1})", callback_data="buy_aim_1d"), InlineKeyboardButton(f"⚡ 03 Days (₹{p3})", callback_data="buy_aim_3d")],
+            [InlineKeyboardButton(f"🔥 07 Days (₹{p7})", callback_data="buy_aim_7d"), InlineKeyboardButton(f"⚡ 15 Days (₹{p15})", callback_data="buy_aim_15d")],
+            [InlineKeyboardButton(f"👑 30 Days (₹{p30})", callback_data="buy_aim_30d"), InlineKeyboardButton(f"⚡ 90 Days (₹{p90})", callback_data="buy_aim_90d")],
+            [InlineKeyboardButton("◀️ Back to Main Menu", callback_data="back_main")]
+        ]
+        text = (
+            "╔═══════════════════════════╗\n"
+            "║  👿 <b>A I M - A I ENGINE (CARROM)</b> 🔥 ║\n"
+            "╚═══════════════════════════╝\n"
+            "💎 <b>OFFICIAL CARROM PRICE CATALOG:</b>\n"
+            f"• ⌛ 01 Day    ──── <code>₹{p1}</code>\n"
+            f"• ⌛ 03 Days   ──── <code>₹{p3}</code>\n"
+            f"• ⌛ 07 Days   ──── <code>₹{p7}</code> 🔥\n"
+            f"• ⌛ 15 Days   ──── <code>₹{p15}</code>\n"
+            f"• ⌛ 30 Days   ──── <code>₹{p30}</code> 👑\n"
+            f"• ⌛ 90 Days   ──── <code>₹{p90}</code> ⚡\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "🔒 <i>100% Anti-Ban Safe Engine • Instant Auto Key</i>"
+        )
+        await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     # --- AIM CARROM KING MENU ---
@@ -758,12 +1016,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]
         ]
         await query.edit_message_text(
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║   👑 <b>AIM CARROM KING STORE</b>   ║\n"
             "╚═══════════════════════════╝\n\n"
-            "Select your version to view pricing & slots:"
-            "</blockquote>",
+            "Select your version to view pricing & slots:",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -777,7 +1033,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("◀️ Back", callback_data="aim_menu")]
         ]
         text = (
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║   🟢 <b>AIM CARROM (NORMAL)</b>     ║\n"
             "╚═══════════════════════════╝\n"
@@ -785,7 +1040,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• 3 Days ➜ <code>₹{p3}</code>\n"
             f"• 1 Week ➜ <code>₹{p7}</code>\n"
             f"• 1 Month ➜ <code>₹{p30}</code>"
-            "</blockquote>"
         )
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
@@ -798,7 +1052,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("◀️ Back", callback_data="aim_menu")]
         ]
         text = (
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║   🔥 <b>AIM CARROM (AUTO QUEUE)</b>  ║\n"
             "╚═══════════════════════════╝\n"
@@ -806,7 +1059,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• 3 Days ➜ <code>₹{p3}</code>\n"
             f"• 1 Week ➜ <code>₹{p7}</code>\n"
             f"• 1 Month ➜ <code>₹{p30}</code>"
-            "</blockquote>"
         )
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
@@ -820,12 +1072,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]
         ]
         await query.edit_message_text(
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║    🔥 <b>KOS ENGINE PLATFORM</b>    ║\n"
             "╚═══════════════════════════╝\n\n"
-            "Select target game to purchase VIP Key:"
-            "</blockquote>",
+            "Select target game to purchase VIP Key:",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -839,7 +1089,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ 15 Days (₹{p15})", callback_data="buy_b15"), InlineKeyboardButton(f"⚡ 30 Days (₹{p30})", callback_data="buy_b30")],
             [InlineKeyboardButton("◀️ Back", callback_data="kos_menu")]
         ]
-        text = f"<blockquote>🎱 <b>KOS 8 BALL POOL VIP</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 1 Day ➜ <code>₹{p1}</code>\n• 7 Days ➜ <code>₹{p7}</code>\n• 15 Days ➜ <code>₹{p15}</code>\n• 30 Days ➜ <code>₹{p30}</code></blockquote>"
+        text = f"🎱 <b>KOS 8 BALL POOL VIP</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 1 Day ➜ <code>₹{p1}</code>\n• 7 Days ➜ <code>₹{p7}</code>\n• 15 Days ➜ <code>₹{p15}</code>\n• 30 Days ➜ <code>₹{p30}</code>"
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -851,7 +1101,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ 15 Days (₹{p15})", callback_data="buy_c15"), InlineKeyboardButton(f"⚡ 30 Days (₹{p30})", callback_data="buy_c30")],
             [InlineKeyboardButton("◀️ Back", callback_data="kos_menu")]
         ]
-        text = f"<blockquote>🎯 <b>KOS CARROM POOL VIP</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 1 Day ➜ <code>₹{p1}</code>\n• 7 Days ➜ <code>₹{p7}</code>\n• 15 Days ➜ <code>₹{p15}</code>\n• 30 Days ➜ <code>₹{p30}</code></blockquote>"
+        text = f"🎯 <b>KOS CARROM POOL VIP</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 1 Day ➜ <code>₹{p1}</code>\n• 7 Days ➜ <code>₹{p7}</code>\n• 15 Days ➜ <code>₹{p15}</code>\n• 30 Days ➜ <code>₹{p30}</code>"
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -862,7 +1112,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ 30 Days (₹{p30})", callback_data="buy_f30")],
             [InlineKeyboardButton("◀️ Back", callback_data="kos_menu")]
         ]
-        text = f"<blockquote>🔥 <b>KOS FREEFIRE PANEL VIP</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 1 Day ➜ <code>₹{p1}</code>\n• 7 Days ➜ <code>₹{p7}</code>\n• 30 Days ➜ <code>₹{p30}</code></blockquote>"
+        text = f"🔥 <b>KOS FREEFIRE PANEL VIP</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 1 Day ➜ <code>₹{p1}</code>\n• 7 Days ➜ <code>₹{p7}</code>\n• 30 Days ➜ <code>₹{p30}</code>"
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -875,7 +1125,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ 3 Months (₹{p90})", callback_data="buy_bit90"), InlineKeyboardButton(f"⚡ Lifetime (₹{plt})", callback_data="buy_bitlt")],
             [InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]
         ]
-        text = f"<blockquote>⚡ <b>BITAIM OFFICIAL SYSTEM</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 7 Days ➜ <code>₹{p7}</code>\n• 30 Days ➜ <code>₹{p30}</code>\n• 3 Months ➜ <code>₹{p90}</code>\n• Lifetime ➜ <code>₹{plt}</code></blockquote>"
+        text = f"⚡ <b>BITAIM OFFICIAL SYSTEM</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 7 Days ➜ <code>₹{p7}</code>\n• 30 Days ➜ <code>₹{p30}</code>\n• 3 Months ➜ <code>₹{p90}</code>\n• Lifetime ➜ <code>₹{plt}</code>"
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -887,12 +1137,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]
         ]
         await query.edit_message_text(
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║    🐍 <b>SNAKE ENGINE VIP</b>     ║\n"
             "╚═══════════════════════════╝\n\n"
-            "Select game variant:"
-            "</blockquote>",
+            "Select game variant:",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -905,7 +1153,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ 30 Days (₹{p30})", callback_data="buy_snkc_30d")],
             [InlineKeyboardButton("◀️ Back", callback_data="snk_menu")]
         ]
-        text = f"<blockquote>🐍 <b>SNAKE CARROM POOL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 3 Days ➜ <code>₹{p3}</code>\n• 10 Days ➜ <code>₹{p10}</code>\n• 30 Days ➜ <code>₹{p30}</code></blockquote>"
+        text = f"🐍 <b>SNAKE CARROM POOL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 3 Days ➜ <code>₹{p3}</code>\n• 10 Days ➜ <code>₹{p10}</code>\n• 30 Days ➜ <code>₹{p30}</code>"
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -916,7 +1164,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(f"⚡ 30 Days (₹{p30})", callback_data="buy_snk8_30d")],
             [InlineKeyboardButton("◀️ Back", callback_data="snk_menu")]
         ]
-        text = f"<blockquote>🐍 <b>SNAKE 8 BALL POOL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 3 Days ➜ <code>₹{p3}</code>\n• 10 Days ➜ <code>₹{p10}</code>\n• 30 Days ➜ <code>₹{p30}</code></blockquote>"
+        text = f"🐍 <b>SNAKE 8 BALL POOL</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 3 Days ➜ <code>₹{p3}</code>\n• 10 Days ➜ <code>₹{p10}</code>\n• 30 Days ➜ <code>₹{p30}</code>"
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -934,7 +1182,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ Cancel Order", callback_data="back_main")]
         ]
         confirm_text = (
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║   🛒 <b>CHECKOUT CONFIRMATION</b>   ║\n"
             "╚═══════════════════════════╝\n"
@@ -942,7 +1189,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"⏳ <b>Duration:</b> {plan['label']}\n"
             f"💰 <b>Total Price:</b> <code>₹{price}</code>\n\n"
             "<i>Tap below to deduct balance and generate your VIP Key instantly.</i>"
-            "</blockquote>"
         )
         await query.edit_message_text(confirm_text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
@@ -958,37 +1204,34 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if bal < price:
             await query.edit_message_text(
-                "<blockquote>"
                 "╔═══════════════════════════╗\n"
                 "║   ❌ <b>INSUFFICIENT FUNDS</b>    ║\n"
                 "╚═══════════════════════════╝\n"
                 f"Required: <b>₹{price}</b> | Your Balance: <b>₹{bal}</b>\n\n"
-                "👉 Please deposit funds to continue."
-                "</blockquote>",
+                "👉 Please deposit funds or invite friends to earn free balance!",
                 parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Add Balance Now", callback_data="add_bal")]])
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("💳 Add Balance Now", callback_data="add_bal")],
+                    [InlineKeyboardButton("🎁 Refer & Earn Free (₹1)", callback_data="referral_menu")]
+                ])
             )
             return
 
         if "bit" in plan_id:
             awaiting_gmail[user_id] = plan_id
             await query.edit_message_text(
-                "<blockquote>"
                 "╔═══════════════════════════╗\n"
                 "║   📧 <b>GMAIL ID REQUIRED</b>     ║\n"
                 "╚═══════════════════════════╝\n\n"
-                "Please type & send your <b>Google Play Gmail ID</b> in chat to activate Bitaim Hack:"
-                "</blockquote>",
+                "Please type & send your <b>Google Play Gmail ID</b> in chat to activate Bitaim Hack:",
                 parse_mode="HTML"
             )
             return
 
         if db_count_keys(plan_id) == 0:
             await query.edit_message_text(
-                "<blockquote>"
                 "⚠️ <b>OUT OF STOCK TEMPORARILY!</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Admin is restocking now. Contact {ADMIN_USERNAME} for priority delivery."
-                "</blockquote>",
+                f"Admin is restocking now. Contact {ADMIN_USERNAME} for priority delivery.",
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Return to Menu", callback_data="back_main")]])
             )
@@ -1001,7 +1244,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 👑 THE ONE-TAP COPY LUXURY VOUCHER
         success_receipt = (
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║  🎉 <b>OFFICIAL PURCHASE RECEIPT</b> ║\n"
             "╚═══════════════════════════╝\n"
@@ -1014,7 +1256,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"<code>{key}</code>\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             "✨ <i>Paste this key into Happy Gamer App & Enjoy!</i> 🚀"
-            "</blockquote>"
         )
 
         await query.edit_message_text(success_receipt, parse_mode="HTML")
@@ -1024,29 +1265,31 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         orders = db_get_user_orders(user_id)
         if not orders:
             await query.edit_message_text(
-                "<blockquote>📜 <b>ORDER HISTORY</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>You have not made any purchases yet!</i></blockquote>",
+                "📜 <b>ORDER HISTORY</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n<i>You have not made any purchases yet!</i>",
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]])
             )
             return
-        msg = "<blockquote>📜 <b>YOUR LAST 10 PURCHASES:</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        msg = "📜 <b>YOUR LAST 10 PURCHASES:</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         for o in orders:
             msg += f"💎 <b>{o['game']} ({o['plan_label']})</b>\n  💰 Paid: <code>₹{o['price']}</code> | 🕒 {o['timestamp']}\n  🔑 Key: <code>{o['key_delivered']}</code>\n\n"
-        msg += "</blockquote>"
         await query.edit_message_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
         return
 
     if query.data == "add_bal":
         caption = (
-            "<blockquote>"
-            "╔═══════════════════════════╗\n"
-            "║    💳 <b>SECURE UPI PAYMENT</b>     ║\n"
-            "╚═══════════════════════════╝\n\n"
-            "📌 <b>Official UPI ID:</b> <code>sagarhalder22@axl</code> <i>(Tap to copy)</i>\n\n"
-            "1️⃣ স্ক্যানার দিয়ে পেমেন্ট সম্পন্ন করুন।\n"
-            "2️⃣ পেমেন্টের স্ক্রিনশটটি এই চ্যাটে সেন্ড করুন।\n"
-            "⏰ ৫ মিনিটের মধ্যে ভেরিফাই করে ব্যালেন্স যোগ হবে!"
-            "</blockquote>"
+            "╔═══════════════════════════════════╗\n"
+            "║ 🛡️ <b>HAPPY GAMER OFFICIAL MERCHANT</b> ║\n"
+            "╚═══════════════════════════════════╝\n"
+            "⚡ <b>Bank-Grade Instant Auto Deposit Terminal</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "📌 <b>Official Verified UPI ID:</b>\n"
+            "👉 <code>sagarhalder22@axl</code> <i>(Tap to Copy)</i>\n\n"
+            "🔒 <b>ANTI-FRAUD VERIFIED STEPS:</b>\n"
+            "1️⃣ Scan & pay via <b>PhonePe / GPay / Paytm / BHIM</b>.\n"
+            "2️⃣ এই চ্যাটে <b>পেমেন্ট স্ক্রিনশট</b> সেন্ড করুন।\n"
+            "3️⃣ স্ক্রিনশটের পর ব্যাংক স্টেটমেন্টের <b>১২-সংখ্যার আসল UTR / Ref No</b> টাইপ করে দিন।\n\n"
+            "⚠️ <i>WARNING: Fake payment apps/spoofs will lead to immediate auto-blacklist & permanent ban!</i>"
         )
         if os.path.exists(QR_PATH):
             with open(QR_PATH, "rb") as f:
@@ -1057,13 +1300,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "become_reseller":
         await query.edit_message_text(
-            "<blockquote>"
             "╔═══════════════════════════╗\n"
             "║  👑 <b>BECOME AN OFFICIAL RESELLER</b> ║\n"
             "╚═══════════════════════════╝\n\n"
             "Get wholesale discount prices on all hack keys & resell at high profit!\n\n"
-            f"👉 <b>Contact Founder:</b> {ADMIN_USERNAME}"
-            "</blockquote>",
+            f"👉 <b>Contact Founder:</b> {ADMIN_USERNAME}",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]])
         )
@@ -1076,83 +1317,59 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if action == "reject":
             req = payment_requests.pop(target_id, None)
             if req and req.get("task"): req["task"].cancel()
-            try: await context.bot.send_message(target_id, "❌ <b>Your payment verification was rejected.</b>", parse_mode="HTML")
+            try: await context.bot.send_message(target_id, "❌ <b>Your payment verification was rejected by Merchant Desk.</b>\n<i>Please ensure you paid the real amount and submitted a valid UTR.</i>", parse_mode="HTML")
             except Exception: pass
             await query.edit_message_caption("❌ <b>Payment Rejected</b>", parse_mode="HTML")
             return
         amount = int(action)
         req = payment_requests.pop(target_id, None)
         if req and req.get("task"): req["task"].cancel()
+        
+        if req and "utr" in req:
+            db_record_utr(req["utr"], target_id, amount)
+
         new_bal = db_add_balance(target_id, amount)
         try:
             await context.bot.send_message(
                 target_id,
-                "<blockquote>"
                 "╔═══════════════════════════╗\n"
                 "║  🎉 <b>PAYMENT APPROVED</b>       ║\n"
                 "╚═══════════════════════════╝\n"
                 f"💰 <b>₹{amount}</b> has been credited to your wallet.\n"
-                f"💳 <b>Current Balance:</b> <code>₹{new_bal}.00</code>"
-                "</blockquote>",
+                f"💳 <b>Current Balance:</b> <code>₹{new_bal}.00</code>",
                 parse_mode="HTML"
             )
         except Exception: pass
-        await query.edit_message_caption(f"✅ <b>Approved ₹{amount} for User {target_id}</b>", parse_mode="HTML")
-        return
-
-    if query.data.startswith("verify_"):
-        cust_id = int(query.data.split("_")[1])
-        if cust_id != user_id: return
-        if cust_id not in payment_requests:
-            await query.edit_message_caption("⚠️ Request timed out. Please send screenshot again.")
-            return
-        photo_id = payment_requests[cust_id]["photo_id"]
-        user_obj = query.from_user
-        name     = user_obj.full_name
-        username = f"@{user_obj.username}" if user_obj.username else "No username"
-        role_lbl = "👑 Reseller" if db_is_reseller(cust_id) else "👤 Customer"
-        await query.edit_message_caption("⏳ <b>Verifying... Admin is reviewing your receipt!</b>", parse_mode="HTML")
-        
-        amounts = [50, 60, 65, 100, 120, 150, 160, 165, 180, 190, 200, 220, 230, 250, 280, 290, 300, 310, 320, 330, 340, 360, 380, 400, 410, 450, 460, 480, 490, 500, 600, 630, 650, 670, 750, 800, 830, 850, 870, 900, 950, 1000, 1150, 1180, 1200, 1250, 1400, 1500, 1600, 1790, 1800, 1860]
-        row, kbd = [], []
-        for amt in amounts:
-            row.append(InlineKeyboardButton(f"₹{amt}", callback_data=f"pay_{cust_id}_{amt}"))
-            if len(row) == 3: kbd.append(row); row = []
-        if row: kbd.append(row)
-        kbd.append([InlineKeyboardButton("❌ Reject Payment", callback_data=f"pay_{cust_id}_reject")])
-        
-        for admin_id in ADMINS:
-            try:
-                await context.bot.send_photo(
-                    chat_id=admin_id, photo=photo_id,
-                    caption=f"🔔 <b>NEW PAYMENT SUBMISSION</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n👤 <b>ID:</b> <code>{cust_id}</code>\n📝 <b>Name:</b> {name}\n🔗 <b>Handle:</b> {username}\n🏷️ <b>Role:</b> {role_lbl}\n💳 <b>Current Bal:</b> ₹{db_get_balance(cust_id)}",
-                    parse_mode="HTML",
-                    reply_markup=InlineKeyboardMarkup(kbd)
-                )
-            except Exception: pass
+        await query.edit_message_caption(f"✅ <b>Approved ₹{amount} for User {target_id}</b> (UTR Locked)", parse_mode="HTML")
         return
 
 async def expire_payment(user_id, context):
     await asyncio.sleep(PAYMENT_TIMEOUT)
     if user_id in payment_requests:
         del payment_requests[user_id]
-        try: await context.bot.send_message(user_id, "⚠️ Payment request timed out. Send screenshot again.")
+        try: await context.bot.send_message(user_id, "⚠️ Payment verification session timed out. Please submit your receipt and UTR again.")
         except Exception: pass
 
 async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id  = update.effective_user.id
     
-    if user_id in payment_requests:
-        old = payment_requests[user_id].get("task")
-        if old: old.cancel()
+    if db_is_banned(user_id):
+        await update.message.reply_text("🚫 <b>BLOCKED USER:</b> Fraudulent users are not permitted to submit receipts.", parse_mode="HTML")
+        return
+
     photo_id = update.message.photo[-1].file_id
-    task     = asyncio.create_task(expire_payment(user_id, context))
-    payment_requests[user_id] = {"timestamp": time.time(), "photo_id": photo_id, "task": task}
+    awaiting_utr[user_id] = photo_id
+
     await update.message.reply_photo(
         photo=photo_id,
-        caption="📸 <b>Payment Receipt Captured!</b>\n\nClick below to forward to Admin for verification:",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⚡ Verify Payment Now", callback_data=f"verify_{user_id}")]])
+        caption=(
+            "📸 <b>RECEIPT CAPTURED SUCCESSFULLY!</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "🔒 <b>ANTI-FRAUD STEP 2 (MANDATORY):</b>\n"
+            "👉 Please type & send the <b>12-digit Bank UTR / Ref Number</b> in this chat to complete verification:\n\n"
+            "<i>(Example: <code>423589123456</code>)</i>"
+        ),
+        parse_mode="HTML"
     )
 
 # --- 📢 MASS BROADCAST ANNOUNCEMENT ---
@@ -1171,17 +1388,16 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fail_count = 0
     
     formatted_broadcast = (
-        "<blockquote>"
         "╔═══════════════════════════╗\n"
         "║  📢 <b>SPECIAL VIP ANNOUNCEMENT</b> ║\n"
         "╚═══════════════════════════╝\n\n"
         f"{offer_message}\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🛒 <i>Tap /start to explore the VIP Store!</i> 🚀"
-        "</blockquote>"
     )
     
     for uid in all_users:
+        if db_is_banned(uid): continue
         try:
             await context.bot.send_message(chat_id=uid, text=formatted_broadcast, parse_mode="HTML")
             success_count += 1
@@ -1190,74 +1406,12 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             fail_count += 1
 
     await status_msg.edit_text(
-        "<blockquote>"
         "╔═══════════════════════════╗\n"
         "║  ✅ <b>BROADCAST DISPATCHED</b>   ║\n"
         "╚═══════════════════════════╝\n"
         f"👥 <b>Total Target Users:</b> {len(all_users)}\n"
         f"🚀 <b>Successfully Delivered:</b> {success_count}\n"
-        f"❌ <b>Blocked / Failed:</b> {fail_count}"
-        "</blockquote>",
-        parse_mode="HTML"
-    )
-
-# --- GIST DIAGNOSTIC & CLEANER TOOLS ---
-async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS: return
-    
-    if not GITHUB_TOKEN:
-        await update.message.reply_text("❌ <b>GITHUB_TOKEN</b> is not found in environment variables!", parse_mode="HTML")
-        return
-        
-    masked_token = GITHUB_TOKEN[:4] + "..." + GITHUB_TOKEN[-4:] if len(GITHUB_TOKEN) > 8 else "***"
-    headers = get_auth_headers()
-    get_url = f"https://api.github.com/gists/{GIST_ID}"
-    
-    status_msg = await update.message.reply_text("🔍 <i>Testing GitHub Gist connection & token permissions...</i>", parse_mode="HTML")
-    
-    try:
-        res = requests.get(get_url, headers=headers, timeout=10)
-        scopes = res.headers.get("X-OAuth-Scopes", "No Scopes Found")
-        
-        if res.status_code == 200:
-            owner = res.json().get("owner", {}).get("login", "Unknown")
-            files = list(res.json().get("files", {}).keys())
-            await status_msg.edit_text(
-                "<blockquote>"
-                "✅ <b>GITHUB GIST CONNECTION OK!</b>\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"🔑 <b>Token:</b> <code>{masked_token}</code>\n"
-                f"👤 <b>Gist Owner:</b> <code>{owner}</code>\n"
-                f"🏷️ <b>Scopes:</b> <code>{scopes}</code>\n"
-                f"📄 <b>Files found:</b> <code>{', '.join(files)}</code>\n\n"
-                "<i>Your token is ready to generate and update keys!</i>"
-                "</blockquote>",
-                parse_mode="HTML"
-            )
-        else:
-            await status_msg.edit_text(
-                f"❌ <b>Gist Connection Error ({res.status_code})</b>\n\n"
-                f"<b>Response:</b> <code>{res.text}</code>\n\n"
-                "👉 Go to GitHub -> Settings -> Developer Settings -> Personal Access Tokens -> Click your token -> Check <b>[x] gist</b> and save!",
-                parse_mode="HTML"
-            )
-    except Exception as e:
-        await status_msg.edit_text(f"❌ <b>Request Exception:</b> <code>{e}</code>", parse_mode="HTML")
-
-async def cmd_cleangist(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS: return
-    
-    status_msg = await update.message.reply_text("🧹 <i>Scanning Gist & Purging Expired Keys...</i>", parse_mode="HTML")
-    removed = purge_expired_gist_keys()
-    
-    await status_msg.edit_text(
-        "<blockquote>"
-        "╔═══════════════════════════╗\n"
-        "║   🧹 <b>GIST CLEANUP COMPLETE</b>  ║\n"
-        "╚═══════════════════════════╝\n"
-        f"🗑️ <b>Expired Keys Removed:</b> {removed} Pcs\n"
-        "✨ <i>GitHub Gist `status.txt` is now 100% clean & optimized!</i>"
-        "</blockquote>",
+        f"❌ <b>Blocked / Failed:</b> {fail_count}",
         parse_mode="HTML"
     )
 
@@ -1265,18 +1419,42 @@ async def cmd_cleangist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     help_text = (
-        "<blockquote>"
         "╔═══════════════════════════╗\n"
         "║   👑 <b>ADMIN CONTROL PANEL</b>   ║\n"
         "╚═══════════════════════════╝\n"
         "📢 <b>Mass Broadcast:</b>\n• <code>/broadcast &lt;offer text&gt;</code>\n\n"
         "💳 <b>Wallet Controls:</b>\n• <code>/add &lt;id&gt; &lt;amount&gt;</code>\n\n"
-        "🔑 <b>Key & Inventory Controls:</b>\n• <code>/addkey &lt;plan&gt; &lt;key&gt;</code>\n• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n• <code>/cleangist</code> (Purge Expired Keys)\n• <code>/testgist</code> (Check GitHub Token)\n• <code>/stock</code>\n• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n• <code>/reply &lt;id&gt; &lt;msg&gt;</code>\n\n"
+        "🚨 <b>Anti-Fraud Controls:</b>\n• <code>/ban &lt;user_id&gt;</code>\n• <code>/unban &lt;user_id&gt;</code>\n\n"
+        "🔑 <b>Key & Inventory Controls:</b>\n"
+        "• <code>/addkey aim_1d YOUR_KEY</code> (AIM-AI 1 Day)\n"
+        "• <code>/addkey aim_7d YOUR_KEY</code> (AIM-AI 7 Days)\n"
+        "• <code>/addkey aim_30d YOUR_KEY</code> (AIM-AI 30 Days)\n"
+        "• <code>/addkey &lt;plan&gt; &lt;key&gt;</code>\n"
+        "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n"
+        "• <code>/cleangist</code>\n"
+        "• <code>/testgist</code>\n"
+        "• <code>/stock</code>\n"
+        "• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n\n"
         "💎 <b>Price Management:</b>\n• <code>/setprice &lt;plan&gt; &lt;regular&gt; &lt;reseller&gt;</code>\n• <code>/prices</code>\n\n"
         "👑 <b>Reseller Management:</b>\n• <code>/addreseller &lt;id&gt;</code>\n• <code>/removereseller &lt;id&gt;</code>\n• <code>/resellers</code>"
-        "</blockquote>"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
+
+async def cmd_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    try:
+        uid = int(context.args[0])
+        db_ban_user(uid, "Admin manual blacklist")
+        await update.message.reply_text(f"🚨 <b>User {uid} has been permanently BANNED!</b>", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/ban &lt;user_id&gt;</code>", parse_mode="HTML")
+
+async def cmd_unban(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    try:
+        uid = int(context.args[0])
+        db_unban_user(uid)
+        await update.message.reply_text(f"✅ <b>User {uid} unbanned.</b>", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/unban &lt;user_id&gt;</code>", parse_mode="HTML")
 
 async def cmd_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1303,7 +1481,7 @@ async def cmd_addkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         plan = context.args[0].lower(); new_key = context.args[1]
         db_add_key(plan, new_key)
         await update.message.reply_text(f"✅ <b>Stock Added for {plan}:</b> <code>{new_key}</code>\n📦 Total Stock: <b>{db_count_keys(plan)}</b>", parse_mode="HTML")
-    except Exception: await update.message.reply_text("Usage: <code>/addkey &lt;plan_code&gt; &lt;key&gt;</code>", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/addkey &lt;plan_code&gt; &lt;key&gt;</code>\nExample: <code>/addkey aim_7d ABC-123-XYZ</code>", parse_mode="HTML")
 
 async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1322,7 +1500,6 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if success:
             receipt_msg = (
-                "<blockquote>"
                 "╔═══════════════════════════╗\n"
                 "║  👑 <b>SCRIPT KEY GENERATED!</b>   ║\n"
                 "╚═══════════════════════════╝\n"
@@ -1333,7 +1510,6 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 "🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
                 f"<code>{vip_key}</code>"
-                "</blockquote>"
             )
             await status_msg.edit_text(receipt_msg, parse_mode="HTML")
         else:
@@ -1402,10 +1578,14 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start",          start))
     app.add_handler(CommandHandler("help",           cmd_help))
+    app.add_handler(CommandHandler("referral",       send_referral_panel))
+    app.add_handler(CommandHandler("ref",            send_referral_panel))
     app.add_handler(CommandHandler("broadcast",      cmd_broadcast))
     app.add_handler(CommandHandler("sendall",        cmd_broadcast))
     app.add_handler(CommandHandler("cleangist",      cmd_cleangist))
     app.add_handler(CommandHandler("testgist",       cmd_testgist))
+    app.add_handler(CommandHandler("ban",            cmd_ban))
+    app.add_handler(CommandHandler("unban",          cmd_unban))
     app.add_handler(CommandHandler("reply",          cmd_reply))
     app.add_handler(CommandHandler("add",            cmd_add))
     app.add_handler(CommandHandler("addkey",         cmd_addkey))
@@ -1420,5 +1600,5 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("👑 Happy Gamer Ultra-VIP Telegram Engine Running 24/7...")
+    print("👑 Happy Gamer VIP Telegram Engine (AIM-AI & ₹1 Referral Active) Running 24/7...")
     app.run_polling()
