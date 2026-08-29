@@ -247,6 +247,52 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+# DEFAULT PRICES (ALWAYS APPLIED & PRESERVED)
+DEFAULT_PRICES = [
+    # 👿 AIM-AI ENGINE (CARROM)
+    ("aim_1d",  "AIM-AI Carrom", "1 Day",   120, 100),
+    ("aim_3d",  "AIM-AI Carrom", "3 Days",  200, 180),
+    ("aim_7d",  "AIM-AI Carrom", "7 Days",  300, 260),
+    ("aim_15d", "AIM-AI Carrom", "15 Days", 500, 490),
+    ("aim_30d", "AIM-AI Carrom", "30 Days", 830, 780),
+    ("aim_90d", "AIM-AI Carrom", "90 Days", 2100, 2000),
+
+    # AIM CARROM KING
+    ("acn_3d",  "AIM Carrom Normal", "3 Days",  250, 220),
+    ("acn_7d",  "AIM Carrom Normal", "1 Week",  360, 330),
+    ("acn_30d", "AIM Carrom Normal", "1 Month", 1000, 950),
+    ("acp_3d",  "AIM Carrom Premium", "3 Days",  310, 280),
+    ("acp_7d",  "AIM Carrom Premium", "1 Week",  480, 460),
+    ("acp_30d", "AIM Carrom Premium", "1 Month", 1250, 1180),
+
+    # KOS ENGINE
+    ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
+    ("b7",  "KOS 8 Ball", "7 Days",  500, 450),
+    ("b15", "KOS 8 Ball", "15 Days", 900, 800),
+    ("b30", "KOS 8 Ball", "30 Days", 1600, 1400),
+    ("c1",  "KOS Carrom", "1 Day",   120, 100),
+    ("c7",  "KOS Carrom", "7 Days",  300, 230),
+    ("c15", "KOS Carrom", "15 Days", 490, 400),
+    ("c30", "KOS Carrom", "30 Days", 800, 670),
+    ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
+    ("f7",  "KOS FreeFire Panel", "7 Days",  600, 500),
+    ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
+
+    # BITAIM
+    ("bit7",  "Bitaim ⚡", "7 Days",    65, 50),
+    ("bit30", "Bitaim ⚡", "30 Days",   165, 160),
+    ("bit90", "Bitaim ⚡", "3 Months",  380, 340),
+    ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1790),
+
+    # SNAKE ENGINE
+    ("snkc_3d",  "Snake Carrom", "3 Days",  190, 160),
+    ("snkc_10d", "Snake Carrom", "10 Days", 450, 400),
+    ("snkc_30d", "Snake Carrom", "30 Days", 900, 830),
+    ("snk8_3d",  "Snake 8Ball", "3 Days",  320, 290),
+    ("snk8_10d", "Snake 8Ball", "10 Days", 650, 630),
+    ("snk8_30d", "Snake 8Ball", "30 Days", 1200, 1150),
+]
+
 def init_db():
     with get_db() as db:
         db.executescript("""
@@ -306,16 +352,6 @@ def init_db():
         
         gh_data = pull_data_from_github()
         if gh_data:
-            db.execute("DELETE FROM users")
-            db.execute("DELETE FROM balances")
-            db.execute("DELETE FROM keys")
-            db.execute("DELETE FROM resellers")
-            db.execute("DELETE FROM prices")
-            db.execute("DELETE FROM order_history")
-            db.execute("DELETE FROM banned_users")
-            db.execute("DELETE FROM used_utrs")
-            db.execute("DELETE FROM referrals")
-            
             for u in gh_data.get("users", []):
                 db.execute("INSERT OR REPLACE INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)", 
                            (u["user_id"], u.get("first_name",""), u.get("username",""), u.get("referred_by", 0)))
@@ -325,68 +361,17 @@ def init_db():
                 db.execute("INSERT OR REPLACE INTO keys (id, plan, key) VALUES (?,?,?)", (k["id"], k["plan"], k["key"]))
             for r in gh_data.get("resellers", []):
                 db.execute("INSERT OR REPLACE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
-            for p in gh_data.get("prices", []):
-                db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
-                           (p["plan"], p["game"], p["label"], p["regular"], p["reseller"]))
-            for o in gh_data.get("order_history", []):
-                db.execute("INSERT OR REPLACE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
-                           (o["id"], o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o["timestamp"]))
             for ban in gh_data.get("banned_users", []):
                 db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (ban["user_id"], ban.get("reason", "Fraud Attempt")))
             for ut in gh_data.get("used_utrs", []):
                 db.execute("INSERT OR REPLACE INTO used_utrs (utr, user_id, amount) VALUES (?,?,?)", (ut["utr"], ut.get("user_id", 0), ut.get("amount", 0)))
             for ref in gh_data.get("referrals", []):
                 db.execute("INSERT OR REPLACE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,?)", (ref["referred_user"], ref["referrer_id"], ref.get("reward_paid", 1)))
-        else:
-            db.execute("DELETE FROM prices")
-            defaults = [
-                # 👿 AIM-AI ENGINE (CARROM)
-                ("aim_1d",  "AIM-AI Carrom", "1 Day",   120, 100),
-                ("aim_3d",  "AIM-AI Carrom", "3 Days",  200, 180),
-                ("aim_7d",  "AIM-AI Carrom", "7 Days",  300, 260),
-                ("aim_15d", "AIM-AI Carrom", "15 Days", 500, 490),
-                ("aim_30d", "AIM-AI Carrom", "30 Days", 830, 780),
-                ("aim_90d", "AIM-AI Carrom", "90 Days", 2100, 2000),
-
-                # AIM CARROM KING
-                ("acn_3d",  "AIM Carrom Normal", "3 Days",  250, 220),
-                ("acn_7d",  "AIM Carrom Normal", "1 Week",  360, 330),
-                ("acn_30d", "AIM Carrom Normal", "1 Month", 1000, 950),
-                ("acp_3d",  "AIM Carrom Premium", "3 Days",  310, 280),
-                ("acp_7d",  "AIM Carrom Premium", "1 Week",  480, 460),
-                ("acp_30d", "AIM Carrom Premium", "1 Month", 1250, 1180),
-
-                # KOS ENGINE
-                ("b1",  "KOS 8 Ball", "1 Day",   180, 150),
-                ("b7",  "KOS 8 Ball", "7 Days",  500, 450),
-                ("b15", "KOS 8 Ball", "15 Days", 900, 800),
-                ("b30", "KOS 8 Ball", "30 Days", 1600, 1400),
-                ("c1",  "KOS Carrom", "1 Day",   120, 100),
-                ("c7",  "KOS Carrom", "7 Days",  300, 230),
-                ("c15", "KOS Carrom", "15 Days", 490, 400),
-                ("c30", "KOS Carrom", "30 Days", 800, 670),
-                ("f1",  "KOS FreeFire Panel", "1 Day",   200, 180),
-                ("f7",  "KOS FreeFire Panel", "7 Days",  600, 500),
-                ("f30", "KOS FreeFire Panel", "30 Days", 1800, 1500),
-
-                # BITAIM
-                ("bit7",  "Bitaim ⚡", "7 Days",    65, 50),
-                ("bit30", "Bitaim ⚡", "30 Days",   165, 160),
-                ("bit90", "Bitaim ⚡", "3 Months",  380, 340),
-                ("bitlt", "Bitaim ⚡", "Life Time", 1860, 1790),
-
-                # SNAKE ENGINE
-                ("snkc_3d",  "Snake Carrom", "3 Days",  190, 160),
-                ("snkc_10d", "Snake Carrom", "10 Days", 450, 400),
-                ("snkc_30d", "Snake Carrom", "30 Days", 900, 830),
-                ("snk8_3d",  "Snake 8Ball", "3 Days",  320, 290),
-                ("snk8_10d", "Snake 8Ball", "10 Days", 650, 630),
-                ("snk8_30d", "Snake 8Ball", "30 Days", 1200, 1150),
-            ]
-            db.executemany(
-                "INSERT INTO prices (plan,game,label,regular,reseller) VALUES (?,?,?,?,?)",
-                defaults
-            )
+        
+        # ALWAYS ENSURE EXACT UP-TO-DATE PRICES FOR ALL HACKS
+        for p in DEFAULT_PRICES:
+            db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)", p)
+        push_data_to_github()
 
 def db_is_banned(user_id):
     with get_db() as db:
@@ -527,7 +512,12 @@ def db_get_user_orders(user_id):
 
 def get_price(user_id, plan_id):
     p = db_get_plan(plan_id)
-    if not p: return 0
+    if not p:
+        # Fallback lookup
+        for d in DEFAULT_PRICES:
+            if d[0] == plan_id:
+                return d[4] if db_is_reseller(user_id) else d[3]
+        return 0
     return p["reseller"] if db_is_reseller(user_id) else p["regular"]
 
 def stock_text():
@@ -539,27 +529,32 @@ def stock_text():
     ]
     for p in ["aim_1d", "aim_3d", "aim_7d", "aim_15d", "aim_30d", "aim_90d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🔥 <code>{plan['label']:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+        label = plan['label'] if plan else p
+        lines.append(f"  🔥 <code>{label:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n👑 <b>AIM CARROM KING INVENTORY:</b>")
     for p in ["acn_3d","acn_7d","acn_30d","acp_3d","acp_7d","acp_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  💎 <code>{plan['label']:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+        label = plan['label'] if plan else p
+        lines.append(f"  💎 <code>{label:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n🔥 <b>KOS ENGINE KEYS:</b>")
     for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  ⚡ <code>{plan['game']} ({plan['label']})</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+        gname = f"{plan['game']} ({plan['label']})" if plan else p
+        lines.append(f"  ⚡ <code>{gname}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
     
     lines.append("\n⚡ <b>BITAIM HACK SLOTS:</b>")
     for p in ["bit7","bit30","bit90","bitlt"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🔮 <code>Bitaim {plan['label']:10}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+        label = plan['label'] if plan else p
+        lines.append(f"  🔮 <code>Bitaim {label:10}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n🐍 <b>SNAKE ENGINE SLOTS:</b>")
     for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
         plan = db_get_plan(p)
-        if plan: lines.append(f"  🐍 <code>{plan['game']} ({plan['label']})</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+        gname = f"{plan['game']} ({plan['label']})" if plan else p
+        lines.append(f"  🐍 <code>{gname}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
         
     lines.append("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)
@@ -825,13 +820,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         new_bal = bal - price
         db_set_balance(user_id, new_bal)
-        db_record_order(user_id, plan['game'], plan['label'], price, f"Gmail: {text}")
+        gname = plan['game'] if plan else "Bitaim"
+        glabel = plan['label'] if plan else plan_id
+        db_record_order(user_id, gname, glabel, price, f"Gmail: {text}")
 
         success_msg = (
             "╔═══════════════════════════╗\n"
             "║  🎉 <b>BITAIM ORDER CONFIRMED</b>  ║\n"
             "╚═══════════════════════════╝\n"
-            f"🎮 <b>Item:</b> {plan['game']} ({plan['label']})\n"
+            f"🎮 <b>Item:</b> {gname} ({glabel})\n"
             f"💰 <b>Charged:</b> ₹{price}\n"
             f"📧 <b>Account Gmail:</b> <code>{text}</code>\n"
             f"💳 <b>Remaining Balance:</b> ₹{new_bal}\n"
@@ -849,7 +846,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         f"🚨 <b>NEW BITAIM ACTIVATION DISPATCH!</b>\n"
                         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                         f"👤 <b>Client:</b> {user_id} ({name})\n"
-                        f"🎮 <b>Plan:</b> {plan['game']} ({plan['label']})\n"
+                        f"🎮 <b>Plan:</b> {gname} ({glabel})\n"
                         f"💰 <b>Amount:</b> ₹{price}\n"
                         f"📧 <b>User Gmail:</b> <code>{text}</code>"
                     ),
@@ -1240,7 +1237,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         new_bal = bal - price
         db_set_balance(user_id, new_bal)
         key = db_pop_key(plan_id)
-        db_record_order(user_id, plan['game'], plan['label'], price, key)
+        gname = plan['game'] if plan else "VIP Hack"
+        glabel = plan['label'] if plan else plan_id
+        db_record_order(user_id, gname, glabel, price, key)
 
         # 👑 THE ONE-TAP COPY LUXURY VOUCHER
         success_receipt = (
@@ -1248,7 +1247,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "║  🎉 <b>OFFICIAL PURCHASE RECEIPT</b> ║\n"
             "╚═══════════════════════════╝\n"
             f"👤 <b>Customer:</b> {name}\n"
-            f"🎮 <b>Item:</b> {plan['game']} ({plan['label']})\n"
+            f"🎮 <b>Item:</b> {gname} ({glabel})\n"
             f"💰 <b>Amount Paid:</b> <code>₹{price}</code>\n"
             f"💳 <b>Remaining Balance:</b> <code>₹{new_bal}</code>\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -1433,28 +1432,44 @@ async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ <b>GitHub Error ({res.status_code}):</b> {res.text}", parse_mode="HTML")
 
-# --- ADMIN COMMAND PANEL ---
+# --- ADMIN COMPLETE HELP COMMAND WITH EVERY GAME KEY CODE ---
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     help_text = (
-        "╔═══════════════════════════╗\n"
-        "║   👑 <b>ADMIN CONTROL PANEL</b>   ║\n"
-        "╚═══════════════════════════╝\n"
-        "📢 <b>Mass Broadcast:</b>\n• <code>/broadcast &lt;offer text&gt;</code>\n\n"
-        "💳 <b>Wallet Controls:</b>\n• <code>/add &lt;id&gt; &lt;amount&gt;</code>\n\n"
-        "🚨 <b>Anti-Fraud Controls:</b>\n• <code>/ban &lt;user_id&gt;</code>\n• <code>/unban &lt;user_id&gt;</code>\n\n"
-        "🔑 <b>Key & Inventory Controls:</b>\n"
-        "• <code>/addkey aim_1d YOUR_KEY</code> (AIM-AI 1 Day)\n"
-        "• <code>/addkey aim_7d YOUR_KEY</code> (AIM-AI 7 Days)\n"
-        "• <code>/addkey aim_30d YOUR_KEY</code> (AIM-AI 30 Days)\n"
-        "• <code>/addkey &lt;plan&gt; &lt;key&gt;</code>\n"
-        "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n"
-        "• <code>/cleangist</code>\n"
-        "• <code>/testgist</code>\n"
-        "• <code>/stock</code>\n"
-        "• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n\n"
-        "💎 <b>Price Management:</b>\n• <code>/setprice &lt;plan&gt; &lt;regular&gt; &lt;reseller&gt;</code>\n• <code>/prices</code>\n\n"
-        "👑 <b>Reseller Management:</b>\n• <code>/addreseller &lt;id&gt;</code>\n• <code>/removereseller &lt;id&gt;</code>\n• <code>/resellers</code>"
+        "╔═══════════════════════════════════════╗\n"
+        "║   👑 <b>ADMIN FULL CONTROL & KEY CODES</b>   ║\n"
+        "╚═══════════════════════════════════════╝\n\n"
+        "🔑 <b>কিভাবে কি (KEY) অ্যাড করবেন (/addkey):</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "👿 <b>AIM-AI CARROM:</b>\n"
+        "• <code>/addkey aim_1d YOUR_KEY</code> (01 Day)\n"
+        "• <code>/addkey aim_3d YOUR_KEY</code> (03 Days)\n"
+        "• <code>/addkey aim_7d YOUR_KEY</code> (07 Days)\n"
+        "• <code>/addkey aim_15d YOUR_KEY</code> (15 Days)\n"
+        "• <code>/addkey aim_30d YOUR_KEY</code> (30 Days)\n"
+        "• <code>/addkey aim_90d YOUR_KEY</code> (90 Days)\n\n"
+        "👑 <b>AIM CARROM KING (Normal & Premium):</b>\n"
+        "• <code>/addkey acn_3d YOUR_KEY</code> (Normal 3 Days)\n"
+        "• <code>/addkey acn_7d YOUR_KEY</code> (Normal 1 Week)\n"
+        "• <code>/addkey acn_30d YOUR_KEY</code> (Normal 1 Month)\n"
+        "• <code>/addkey acp_3d YOUR_KEY</code> (Premium 3 Days)\n"
+        "• <code>/addkey acp_7d YOUR_KEY</code> (Premium 1 Week)\n"
+        "• <code>/addkey acp_30d YOUR_KEY</code> (Premium 1 Month)\n\n"
+        "🔥 <b>KOS ENGINE:</b>\n"
+        "• <b>Carrom:</b> <code>/addkey c1 KEY</code> | <code>/addkey c7 KEY</code> | <code>/addkey c15 KEY</code> | <code>/addkey c30 KEY</code>\n"
+        "• <b>8 Ball:</b> <code>/addkey b1 KEY</code> | <code>/addkey b7 KEY</code> | <code>/addkey b15 KEY</code> | <code>/addkey b30 KEY</code>\n"
+        "• <b>FreeFire:</b> <code>/addkey f1 KEY</code> | <code>/addkey f7 KEY</code> | <code>/addkey f30 KEY</code>\n\n"
+        "🐍 <b>SNAKE ENGINE:</b>\n"
+        "• <b>Carrom:</b> <code>/addkey snkc_3d KEY</code> | <code>/addkey snkc_10d KEY</code> | <code>/addkey snkc_30d KEY</code>\n"
+        "• <b>8 Ball:</b> <code>/addkey snk8_3d KEY</code> | <code>/addkey snk8_10d KEY</code> | <code>/addkey snk8_30d KEY</code>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🛠️ <b>অন্যান্য এডমিন কমান্ড:</b>\n"
+        "• <code>/stock</code> ➜ লাইভ স্টক চেক\n"
+        "• <code>/prices</code> ➜ সব প্রাইস তালিকা\n"
+        "• <code>/add &lt;id&gt; &lt;amount&gt;</code> ➜ ব্যালেন্স দেওয়া\n"
+        "• <code>/broadcast &lt;text&gt;</code> ➜ সব ইউজারকে মেসেজ\n"
+        "• <code>/ban &lt;id&gt;</code> / <code>/unban &lt;id&gt;</code> ➜ ব্যান/আনব্যান\n"
+        "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ অটো স্ক্রিপ্ট কি জেনারেট"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
@@ -1619,4 +1634,4 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
     print("👑 Happy Gamer VIP Telegram Engine (AIM-AI & ₹1 Referral Active) Running 24/7...")
-    app.run_polling()
+    app.run_polling()il
