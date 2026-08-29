@@ -47,7 +47,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Ultra High Speed Online (AIM-AI & ₹1 Referral Active)</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online (AIM-AI & ₹1 Referral Active)</p>
         </body>
         </html>
         """
@@ -1414,6 +1414,24 @@ async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"❌ <b>Blocked / Failed:</b> {fail_count}",
         parse_mode="HTML"
     )
+
+# --- ADMIN GIST DIAGNOSTIC COMMANDS ---
+async def cmd_cleangist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    purged = purge_expired_gist_keys()
+    await update.message.reply_text(f"🧹 <b>GitHub Gist Cleaned!</b>\nRemoved <code>{purged}</code> expired keys.", parse_mode="HTML")
+
+async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    if not GITHUB_TOKEN:
+        await update.message.reply_text("❌ GITHUB_TOKEN is not configured in Render Environment Variables.", parse_mode="HTML")
+        return
+    headers = get_auth_headers()
+    res = requests.get(f"https://api.github.com/gists/{GIST_ID}", headers=headers, timeout=10)
+    if res.status_code == 200:
+        await update.message.reply_text("✅ <b>GitHub Gist API Connection Successful!</b>", parse_mode="HTML")
+    else:
+        await update.message.reply_text(f"❌ <b>GitHub Error ({res.status_code}):</b> {res.text}", parse_mode="HTML")
 
 # --- ADMIN COMMAND PANEL ---
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
