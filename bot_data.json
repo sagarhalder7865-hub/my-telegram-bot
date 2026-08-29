@@ -1,6 +1,13 @@
 {
   "users": [
     {
+      "user_id": 7226856890,
+      "first_name": "Card sellers",
+      "username": "",
+      "referred_by": 0,
+      "joined_at": "2026-08-29 16:14:53"
+    },
+    {
       "user_id": 7392049149,
       "first_name": "Jakir",
       "username": "",
