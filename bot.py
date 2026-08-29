@@ -47,7 +47,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online (AIM-AI, Script Generator & Instant Deposit Active)</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online (Auto GitHub Cloud Persistence Active)</p>
         </body>
         </html>
         """
@@ -106,7 +106,7 @@ MASTER_PRICES = {
     "snkc_30d": {"game": "Snake Carrom", "label": "30 Days", "reg": 900, "res": 830},
     "snk8_3d":  {"game": "Snake 8Ball", "label": "3 Days",  "reg": 320, "res": 290},
     "snk8_10d": {"game": "Snake 8Ball", "label": "10 Days", "reg": 650, "res": 630},
-    "snk8_30d": {"game": "Snake 8Ball", "label": "3 Days",  "reg": 1200, "res": 1150},
+    "snk8_30d": {"game": "Snake 8Ball", "label": "30 Days", "reg": 1200, "res": 1150},
 }
 
 # --- GIST AUTO-UPDATER & AUTO-EXPIRY CLEANER ---
@@ -222,16 +222,7 @@ def purge_expired_gist_keys():
     except Exception as e:
         return 0
 
-def auto_prune_worker():
-    while True:
-        time.sleep(3600)
-        try:
-            purge_expired_gist_keys()
-        except Exception: pass
-
-Thread(target=auto_prune_worker, daemon=True).start()
-
-# --- GITHUB CLOUD DATA SYNC ---
+# --- GITHUB REPO DATA PERSISTENCE ---
 def push_data_to_github():
     if not GITHUB_TOKEN or not GITHUB_REPO: return
     try:
@@ -340,6 +331,7 @@ def init_db():
             );
         """)
         
+        # 1. PULL PERSISTENT DATA FROM GITHUB
         gh_data = pull_data_from_github()
         if gh_data:
             for u in gh_data.get("users", []):
@@ -355,12 +347,16 @@ def init_db():
                 db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (ban["user_id"], ban.get("reason", "Admin Ban")))
             for ref in gh_data.get("referrals", []):
                 db.execute("INSERT OR REPLACE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,?)", (ref["referred_user"], ref["referrer_id"], ref.get("reward_paid", 1)))
+            for o in gh_data.get("order_history", []):
+                db.execute("INSERT OR IGNORE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
+                           (o.get("id"), o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o.get("timestamp")))
         
-        # ALWAYS KEEP CORRECT MASTER PRICES
+        # 2. ENSURE ALL MASTER PRICES ARE ALWAYS FIXED
         for pcode, pdata in MASTER_PRICES.items():
             db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
                        (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
-        push_data_to_github()
+            
+    push_data_to_github()
 
 def db_is_banned(user_id):
     with get_db() as db:
