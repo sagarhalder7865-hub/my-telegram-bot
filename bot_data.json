@@ -252,13 +252,7 @@
       "amount": 4580
     }
   ],
-  "keys": [
-    {
-      "id": 2,
-      "plan": "c1",
-      "key": "ECEE1-69A96-38E5C-51BHT"
-    }
-  ],
+  "keys": [],
   "resellers": [],
   "prices": [
     {
@@ -502,6 +496,15 @@
       "price": 300,
       "key_delivered": "ECEE1-69A96-38E5C-51B8S",
       "timestamp": "2026-08-31 15:58:25"
+    },
+    {
+      "id": 2,
+      "user_id": 8546348748,
+      "game": "KOS Carrom",
+      "plan_label": "1 Day",
+      "price": 120,
+      "key_delivered": "ECEE1-69A96-38E5C-51BHT",
+      "timestamp": "2026-08-31 16:03:53"
     }
   ],
   "referrals": [],
