@@ -1,4 +1,3 @@
-
 import os
 import json
 import base64
@@ -9,7 +8,6 @@ import sqlite3
 import datetime
 import random
 import string
-import re
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
@@ -22,7 +20,7 @@ TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMINS   = [8546348748, 8737475340]
 ADMIN_USERNAME = "@happy_gamer2"
 
-# GitHub Token & Repo Config (Works with both GH_TOKEN and GITHUB_TOKEN)
+# GitHub Configuration
 GITHUB_TOKEN = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or "").strip()
 GITHUB_REPO  = (os.environ.get("GH_REPO") or os.environ.get("GITHUB_REPO") or "sagarhalder7865-hub/my-telegram-bot").strip()
 DATA_FILE    = "bot_data.json"
@@ -71,7 +69,7 @@ DEFAULT_PRICES = {
     "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",   "reg": 120, "res": 100},
     "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days",  "reg": 200, "res": 180},
     "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days",  "reg": 300, "res": 260},
-    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 560, "res": 490},
+    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 500, "res": 490},
     "aim_30d": {"game": "AIM-AI Carrom", "label": "30 Days",  "reg": 830, "res": 780},
     "aim_90d": {"game": "AIM-AI Carrom", "label": "90 Days",  "reg": 2100, "res": 2000},
 
@@ -111,7 +109,7 @@ DEFAULT_PRICES = {
     "snk8_30d": {"game": "Snake 8Ball", "label": "30 Days", "reg": 1200, "res": 1150},
 }
 
-# --- GIST AUTO-UPDATER & AUTO-EXPIRY CLEANER ---
+# --- GIST UTILS ---
 def get_auth_headers():
     token = GITHUB_TOKEN.strip() if GITHUB_TOKEN else ""
     return {
@@ -185,14 +183,7 @@ def append_to_gist(vip_key, device_id, days):
         else:
             updated_content = "STATUS=ON\n" + new_entry
 
-        patch_payload = {
-            "files": {
-                FILE_NAME: {
-                    "content": updated_content
-                }
-            }
-        }
-        
+        patch_payload = {"files": {FILE_NAME: {"content": updated_content}}}
         patch_res = requests.patch(get_url, headers=headers, json=patch_payload, timeout=10)
         
         if patch_res.status_code in [200, 201]:
@@ -224,7 +215,7 @@ def purge_expired_gist_keys():
     except Exception as e:
         return 0
 
-# --- GITHUB CLOUD DATA SYNC ---
+# --- GITHUB SYNC ---
 def push_data_to_github():
     if not GITHUB_TOKEN or not GITHUB_REPO: return
     try:
@@ -333,12 +324,12 @@ def init_db():
             );
         """)
         
-        # 1. Insert default prices if not exists
+        # 1. Insert default prices
         for pcode, pdata in DEFAULT_PRICES.items():
             db.execute("INSERT OR IGNORE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
                        (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
 
-        # 2. Pull persistent data from github
+        # 2. Pull persistent data from github (custom prices will overwrite defaults)
         gh_data = pull_data_from_github()
         if gh_data:
             for u in gh_data.get("users", []):
@@ -707,7 +698,7 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
     task = asyncio.create_task(expire_payment(user_id, context))
     payment_requests[user_id] = {"task": task}
 
-    amounts = [100, 120, 180, 200, 260, 300, 490, 500, 560, 580, 780, 830, 2000, 2100, 50, 65, 150, 160, 165, 190, 220, 250, 280, 310, 320, 360, 380, 450, 480, 600, 650, 800, 900, 1000, 1200, 1250, 1600, 1800]
+    amounts = [100, 120, 180, 200, 260, 300, 490, 500, 560, 570, 580, 780, 830, 2000, 2100, 50, 65, 150, 160, 165, 190, 220, 250, 280, 310, 320, 360, 380, 450, 480, 600, 650, 800, 900, 1000, 1200, 1250, 1600, 1800]
     row, kbd = [], []
     for amt in amounts:
         row.append(InlineKeyboardButton(f"₹{amt}", callback_data=f"pay_{user_id}_{amt}"))
@@ -768,13 +759,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db_register_user(user_id, name, username)
 
-    # 1. ADMIN SCRIPT KEY GENERATION VIA CHAT INPUT
+    # 1. ADMIN SCRIPT KEY GENERATION
     if user_id in ADMINS and "script_gen_days" in context.user_data:
         days = context.user_data.pop("script_gen_days")
         device_id = text.strip()
         
         vip_key = generate_short_key()
-        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist, Cleaning Expired Keys & Generating...</i>", parse_mode="HTML")
+        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist & Generating...</i>", parse_mode="HTML")
         success, expiry, err = append_to_gist(vip_key, device_id, days)
         
         if success:
@@ -951,7 +942,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # --- 👿 AIM-AI CARROM ENGINE MENU ---
+    # --- 👿 AIM-AI CARROM ENGINE MENU (DYNAMICS FROM DB) ---
     if query.data == "aim_ai_menu":
         p1 = get_price(user_id, "aim_1d"); p3 = get_price(user_id, "aim_3d")
         p7 = get_price(user_id, "aim_7d"); p15 = get_price(user_id, "aim_15d")
