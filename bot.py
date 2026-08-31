@@ -1,3 +1,4 @@
+
 import os
 import json
 import base64
@@ -21,20 +22,18 @@ TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMINS   = [8546348748, 8737475340]
 ADMIN_USERNAME = "@happy_gamer2"
 
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
-GITHUB_REPO  = os.environ.get("GITHUB_REPO", "sagarhalder7865-hub/my-telegram-bot").strip()
+# GitHub Token & Repo Config (Works with both GH_TOKEN and GITHUB_TOKEN)
+GITHUB_TOKEN = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or "").strip()
+GITHUB_REPO  = (os.environ.get("GH_REPO") or os.environ.get("GITHUB_REPO") or "sagarhalder7865-hub/my-telegram-bot").strip()
 DATA_FILE    = "bot_data.json"
 
 # Gist Config for Script Key Automation
-GIST_ID = "e155b8f93a7476556fa1c8b2dfc9b164"
+GIST_ID   = "e155b8f93a7476556fa1c8b2dfc9b164"
 FILE_NAME = "status.txt"
 
-DATA_DIR = "/opt/render/project/src" if os.path.exists("/opt/render/project/src") else os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(DATA_DIR, "bot_data.db")
-QR_PATH  = os.path.join(DATA_DIR, "payment_qr.png")
-
-if not os.path.exists(QR_PATH):
-    QR_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "payment_qr.png")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH  = os.path.join(BASE_DIR, "bot_data.db")
+QR_PATH  = os.path.join(BASE_DIR, "payment_qr.png")
 
 # --- 24/7 ULTRA CLOUD WEB SERVER ---
 class DummyHandler(BaseHTTPRequestHandler):
@@ -47,7 +46,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online (Auto GitHub Cloud Persistence Active)</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online On GitHub Actions</p>
         </body>
         </html>
         """
@@ -58,18 +57,21 @@ class DummyHandler(BaseHTTPRequestHandler):
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(('0.0.0.0', port), DummyHandler)
-    server.serve_forever()
+    try:
+        server = HTTPServer(('0.0.0.0', port), DummyHandler)
+        server.serve_forever()
+    except Exception:
+        pass
 
 Thread(target=run_web_server, daemon=True).start()
 
-# --- 100% MASTER PRICE CATALOG ---
-MASTER_PRICES = {
+# DEFAULT INITIAL PRICES
+DEFAULT_PRICES = {
     # 👿 AIM-AI ENGINE (CARROM)
     "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",   "reg": 120, "res": 100},
     "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days",  "reg": 200, "res": 180},
     "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days",  "reg": 300, "res": 260},
-    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 500, "res": 490},
+    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 560, "res": 490},
     "aim_30d": {"game": "AIM-AI Carrom", "label": "30 Days",  "reg": 830, "res": 780},
     "aim_90d": {"game": "AIM-AI Carrom", "label": "90 Days",  "reg": 2100, "res": 2000},
 
@@ -156,7 +158,7 @@ def clean_expired_lines(content_text):
 def append_to_gist(vip_key, device_id, days):
     try:
         if not GITHUB_TOKEN:
-            return False, None, "GITHUB_TOKEN is missing in Render!"
+            return False, None, "GitHub Token is not set in Environment!"
 
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
         new_entry = f"HGTOKEN={vip_key}={expiry}={device_id}"
@@ -222,7 +224,7 @@ def purge_expired_gist_keys():
     except Exception as e:
         return 0
 
-# --- GITHUB REPO DATA PERSISTENCE ---
+# --- GITHUB CLOUD DATA SYNC ---
 def push_data_to_github():
     if not GITHUB_TOKEN or not GITHUB_REPO: return
     try:
@@ -238,7 +240,7 @@ def push_data_to_github():
         if get_res.status_code == 200:
             sha = get_res.json().get("sha")
             
-        payload = {"message": "Auto-sync VIP bot data from Telegram Engine", "content": content_b64}
+        payload = {"message": "[skip ci] Auto-sync VIP bot data", "content": content_b64}
         if sha: payload["sha"] = sha
             
         requests.put(url, headers=headers, json=payload, timeout=10)
@@ -331,7 +333,12 @@ def init_db():
             );
         """)
         
-        # 1. PULL PERSISTENT DATA FROM GITHUB
+        # 1. Insert default prices if not exists
+        for pcode, pdata in DEFAULT_PRICES.items():
+            db.execute("INSERT OR IGNORE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
+                       (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
+
+        # 2. Pull persistent data from github
         gh_data = pull_data_from_github()
         if gh_data:
             for u in gh_data.get("users", []):
@@ -343,6 +350,9 @@ def init_db():
                 db.execute("INSERT OR REPLACE INTO keys (id, plan, key) VALUES (?,?,?)", (k["id"], k["plan"], k["key"]))
             for r in gh_data.get("resellers", []):
                 db.execute("INSERT OR REPLACE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
+            for p in gh_data.get("prices", []):
+                db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
+                           (p["plan"], p["game"], p["label"], p["regular"], p["reseller"]))
             for ban in gh_data.get("banned_users", []):
                 db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (ban["user_id"], ban.get("reason", "Admin Ban")))
             for ref in gh_data.get("referrals", []):
@@ -350,13 +360,6 @@ def init_db():
             for o in gh_data.get("order_history", []):
                 db.execute("INSERT OR IGNORE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
                            (o.get("id"), o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o.get("timestamp")))
-        
-        # 2. ENSURE ALL MASTER PRICES ARE ALWAYS FIXED
-        for pcode, pdata in MASTER_PRICES.items():
-            db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
-                       (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
-            
-    push_data_to_github()
 
 def db_is_banned(user_id):
     with get_db() as db:
@@ -380,7 +383,6 @@ def db_register_user(user_id, first_name, username, referrer_id=0):
                 "INSERT INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)",
                 (user_id, first_name, username, referrer_id)
             )
-            # Process ₹1 Referral Bonus
             if referrer_id > 0 and referrer_id != user_id:
                 db_add_balance(referrer_id, 1)
                 db.execute("INSERT OR IGNORE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,1)", (user_id, referrer_id))
@@ -459,14 +461,25 @@ def db_all_resellers():
         return [r["user_id"] for r in db.execute("SELECT user_id FROM resellers").fetchall()]
 
 def db_get_plan(plan_id):
-    if plan_id in MASTER_PRICES:
-        item = MASTER_PRICES[plan_id]
+    with get_db() as db:
+        row = db.execute("SELECT * FROM prices WHERE plan=?", (plan_id,)).fetchone()
+        if row:
+            return dict(row)
+    if plan_id in DEFAULT_PRICES:
+        item = DEFAULT_PRICES[plan_id]
         return {"plan": plan_id, "game": item["game"], "label": item["label"], "regular": item["reg"], "reseller": item["res"]}
     return None
 
 def db_set_price(plan_id, regular, reseller):
     with get_db() as db:
-        db.execute("UPDATE prices SET regular=?, reseller=? WHERE plan=?", (regular, reseller, plan_id))
+        row = db.execute("SELECT game, label FROM prices WHERE plan=?", (plan_id,)).fetchone()
+        if row:
+            db.execute("UPDATE prices SET regular=?, reseller=? WHERE plan=?", (regular, reseller, plan_id))
+        else:
+            gname = DEFAULT_PRICES.get(plan_id, {}).get("game", plan_id)
+            glabel = DEFAULT_PRICES.get(plan_id, {}).get("label", plan_id)
+            db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
+                       (plan_id, gname, glabel, regular, reseller))
     push_data_to_github()
 
 def db_record_order(user_id, game, plan_label, price, key_delivered):
@@ -490,8 +503,9 @@ def db_get_user_orders(user_id):
 
 def get_price(user_id, plan_id):
     is_res = db_is_reseller(user_id)
-    if plan_id in MASTER_PRICES:
-        return MASTER_PRICES[plan_id]["res"] if is_res else MASTER_PRICES[plan_id]["reg"]
+    plan = db_get_plan(plan_id)
+    if plan:
+        return plan["reseller"] if is_res else plan["regular"]
     return 0
 
 def stock_text():
@@ -502,27 +516,32 @@ def stock_text():
         "\n👿 <b>AIM-AI CARROM ENGINE:</b>"
     ]
     for p in ["aim_1d", "aim_3d", "aim_7d", "aim_15d", "aim_30d", "aim_90d"]:
-        label = MASTER_PRICES[p]["label"]
+        pl = db_get_plan(p)
+        label = pl["label"] if pl else p
         lines.append(f"  🔥 <code>{label:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n👑 <b>AIM CARROM KING INVENTORY:</b>")
     for p in ["acn_3d","acn_7d","acn_30d","acp_3d","acp_7d","acp_30d"]:
-        label = MASTER_PRICES[p]["label"]
+        pl = db_get_plan(p)
+        label = pl["label"] if pl else p
         lines.append(f"  💎 <code>{label:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n🔥 <b>KOS ENGINE KEYS:</b>")
     for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
-        gname = f"{MASTER_PRICES[p]['game']} ({MASTER_PRICES[p]['label']})"
+        pl = db_get_plan(p)
+        gname = f"{pl['game']} ({pl['label']})" if pl else p
         lines.append(f"  ⚡ <code>{gname}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
     
     lines.append("\n⚡ <b>BITAIM HACK SLOTS:</b>")
     for p in ["bit7","bit30","bit90","bitlt"]:
-        label = MASTER_PRICES[p]["label"]
+        pl = db_get_plan(p)
+        label = pl["label"] if pl else p
         lines.append(f"  🔮 <code>Bitaim {label:10}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
 
     lines.append("\n🐍 <b>SNAKE ENGINE SLOTS:</b>")
     for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
-        gname = f"{MASTER_PRICES[p]['game']} ({MASTER_PRICES[p]['label']})"
+        pl = db_get_plan(p)
+        gname = f"{pl['game']} ({pl['label']})" if pl else p
         lines.append(f"  🐍 <code>{gname}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
         
     lines.append("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -536,33 +555,39 @@ def price_list_text():
         "\n👿 <b>AIM-AI ENGINE (CARROM POOL):</b>"
     ]
     for p in ["aim_1d", "aim_3d", "aim_7d", "aim_15d", "aim_30d", "aim_90d"]:
-        item = MASTER_PRICES[p]
-        lines.append(f"  🔥 <b>{item['label']:8}</b> ➜ <code>₹{item['reg']}</code> <i>[VIP: ₹{item['res']}]</i>")
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  🔥 <b>{item['label']:8}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
 
     lines.append("\n👑 <b>AIM CARROM KING (Normal):</b>")
     for p in ["acn_3d","acn_7d","acn_30d"]:
-        item = MASTER_PRICES[p]
-        lines.append(f"  💎 <b>{item['label']}</b> ➜ <code>₹{item['reg']}</code> <i>[VIP: ₹{item['res']}]</i>")
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  💎 <b>{item['label']}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
         
     lines.append("\n👑 <b>AIM CARROM KING (Premium Auto Queue):</b>")
     for p in ["acp_3d","acp_7d","acp_30d"]:
-        item = MASTER_PRICES[p]
-        lines.append(f"  ⚡ <b>{item['label']}</b> ➜ <code>₹{item['reg']}</code> <i>[VIP: ₹{item['res']}]</i>")
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  ⚡ <b>{item['label']}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
 
     lines.append("\n🔥 <b>KOS ENGINE VIP KEYS:</b>")
     for p in ["b1","b7","b15","b30","c1","c7","c15","c30","f1","f7","f30"]:
-        item = MASTER_PRICES[p]
-        lines.append(f"  🔮 <b>{item['game']} {item['label']}</b> ➜ <code>₹{item['reg']}</code> <i>[VIP: ₹{item['res']}]</i>")
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  🔮 <b>{item['game']} {item['label']}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
     
     lines.append("\n⚡ <b>BITAIM PREMIUM HACK:</b>")
     for p in ["bit7","bit30","bit90","bitlt"]:
-        item = MASTER_PRICES[p]
-        lines.append(f"  🎯 <b>Bitaim {item['label']}</b> ➜ <code>₹{item['reg']}</code> <i>[VIP: ₹{item['res']}]</i>")
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  🎯 <b>Bitaim {item['label']}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
 
     lines.append("\n🐍 <b>SNAKE ENGINE VIP:</b>")
     for p in ["snkc_3d","snkc_10d","snkc_30d","snk8_3d","snk8_10d","snk8_30d"]:
-        item = MASTER_PRICES[p]
-        lines.append(f"  🐍 <b>{item['game']} {item['label']}</b> ➜ <code>₹{item['reg']}</code> <i>[VIP: ₹{item['res']}]</i>")
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  🐍 <b>{item['game']} {item['label']}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
         
     lines.append("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)
@@ -570,9 +595,8 @@ def price_list_text():
 pending_orders   = {}
 payment_requests = {}
 awaiting_gmail   = {}
-PAYMENT_TIMEOUT  = 300  # 5 Minutes
+PAYMENT_TIMEOUT  = 300
 
-# 🌟 OFFICIAL LUXURY DASHBOARD
 def get_main_dashboard(uid, name):
     role = "👑 VIP Reseller [Elite]" if db_is_reseller(uid) else "👤 Verified Customer"
     bal  = db_get_balance(uid)
@@ -674,7 +698,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_reply_keyboard())
     await update.message.reply_text("👇 <b>Select your VIP Hack to Proceed:</b>", parse_mode="HTML", reply_markup=inline_markup)
 
-# 📥 DIRECT & SIMPLE PAYMENT HANDLER
 async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TYPE, is_photo=False):
     user_id  = update.effective_user.id
     name     = update.effective_user.first_name
@@ -684,7 +707,7 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
     task = asyncio.create_task(expire_payment(user_id, context))
     payment_requests[user_id] = {"task": task}
 
-    amounts = [100, 120, 180, 200, 260, 300, 490, 500, 780, 830, 2000, 2100, 50, 65, 150, 160, 165, 190, 220, 250, 280, 310, 320, 360, 380, 450, 480, 600, 650, 800, 900, 1000, 1200, 1250, 1600, 1800]
+    amounts = [100, 120, 180, 200, 260, 300, 490, 500, 560, 580, 780, 830, 2000, 2100, 50, 65, 150, 160, 165, 190, 220, 250, 280, 310, 320, 360, 380, 450, 480, 600, 650, 800, 900, 1000, 1200, 1250, 1600, 1800]
     row, kbd = [], []
     for amt in amounts:
         row.append(InlineKeyboardButton(f"₹{amt}", callback_data=f"pay_{user_id}_{amt}"))
@@ -813,7 +836,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception: pass
         return
 
-    # Check if text is a numeric UTR / Ref Number (e.g. 423589123456)
     clean_num = text.strip().replace(" ", "")
     if len(clean_num) >= 8 and clean_num.isdigit():
         await handle_direct_payment(update, context, is_photo=False)
@@ -848,7 +870,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "📞 Admin Help":
         await cmd_help(update, context)
 
-# --- REFERRAL PANEL DISPATCHER ---
 async def send_referral_panel(update_or_query, context, user_id):
     bot_info = await context.bot.get_me()
     bot_username = bot_info.username
@@ -898,7 +919,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_referral_panel(query, context, user_id)
         return
 
-    # --- 🛠️ SCRIPT KEY GENERATOR (ADMIN) ---
     if query.data == "script_key_menu":
         if user_id not in ADMINS: return
         kbd = [
@@ -1308,7 +1328,7 @@ async def cmd_cleangist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     if not GITHUB_TOKEN:
-        await update.message.reply_text("❌ GITHUB_TOKEN is not configured in Render Environment Variables.", parse_mode="HTML")
+        await update.message.reply_text("❌ GitHub Token is not configured.", parse_mode="HTML")
         return
     headers = get_auth_headers()
     res = requests.get(f"https://api.github.com/gists/{GIST_ID}", headers=headers, timeout=10)
@@ -1396,7 +1416,7 @@ async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         plan = context.args[0].lower(); reg = int(context.args[1]); res = int(context.args[2])
         db_set_price(plan, reg, res)
-        await update.message.reply_text(f"✅ <b>Price Set for {plan}:</b> Regular ₹{reg}, Reseller ₹{res}", parse_mode="HTML")
+        await update.message.reply_text(f"✅ <b>Price Updated for {plan}:</b> Regular ₹{reg}, Reseller ₹{res}", parse_mode="HTML")
     except Exception: await update.message.reply_text("Usage: <code>/setprice &lt;plan_code&gt; &lt;regular&gt; &lt;reseller&gt;</code>", parse_mode="HTML")
 
 async def cmd_addreseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
