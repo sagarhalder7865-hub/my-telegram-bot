@@ -245,8 +245,8 @@
       "plan": "aim_15d",
       "game": "AIM-AI Carrom",
       "label": "15 Days",
-      "regular": 580,
-      "reseller": 560
+      "regular": 120,
+      "reseller": 100
     },
     {
       "plan": "aim_30d",
