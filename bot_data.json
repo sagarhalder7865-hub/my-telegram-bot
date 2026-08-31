@@ -252,7 +252,13 @@
       "amount": 5000
     }
   ],
-  "keys": [],
+  "keys": [
+    {
+      "id": 1,
+      "plan": "c7",
+      "key": "ECEE1-69A96-38E5C-51B8S"
+    }
+  ],
   "resellers": [],
   "prices": [
     {
