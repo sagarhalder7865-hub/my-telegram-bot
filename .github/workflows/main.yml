@@ -3,41 +3,32 @@ name: 24/7 VIP Telegram Bot Engine
 on:
   workflow_dispatch:
   schedule:
-    # প্রতি ৫ ঘণ্টা পরপর অটোমেটিক সচল রাখার ট্রিপ
     - cron: '0 */5 * * *'
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - 'bot_data.json'
-      - 'README.md'
 
-# এই সেটিংয়ের কারণে আর কখনোই Queued হয়ে আটকে থাকবে না (পুরনো রান অটোমেটিক বন্ধ হয়ে যাবে)
 concurrency:
-  group: telegram-vip-bot
+  group: tg-bot-clean-run
   cancel-in-progress: true
 
 jobs:
   run-bot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 360
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.10
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install python-telegram-bot requests
 
-      - name: Run Telegram Bot Engine
+      - name: Run Telegram Bot
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
