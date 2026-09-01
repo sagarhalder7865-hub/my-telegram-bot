@@ -355,11 +355,6 @@
       "id": 1,
       "plan": "c7",
       "key": "ECEE1-69A96-38E5C-51B8S"
-    },
-    {
-      "id": 3,
-      "plan": "aim_7d",
-      "key": "GHHHD_SSAV"
     }
   ],
   "resellers": [],
@@ -605,6 +600,15 @@
       "price": 200,
       "key_delivered": "GHHHD_SSNV",
       "timestamp": "2026-09-01 13:22:44"
+    },
+    {
+      "id": 2,
+      "user_id": 8546348748,
+      "game": "AIM-AI Carrom",
+      "plan_label": "07 Days",
+      "price": 300,
+      "key_delivered": "GHHHD_SSAV",
+      "timestamp": "2026-09-01 14:07:22"
     }
   ],
   "referrals": [],
