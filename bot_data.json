@@ -443,6 +443,11 @@
       "id": 1,
       "plan": "c7",
       "key": "ECEE1-69A96-38E5C-51B8S"
+    },
+    {
+      "id": 3,
+      "plan": "aim_7d",
+      "key": "AIMAI-7D-PC648HXCFTKNHSE"
     }
   ],
   "resellers": [],
