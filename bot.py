@@ -1,3 +1,4 @@
+
 import os
 import json
 import base64
@@ -20,7 +21,7 @@ TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMINS   = [8546348748, 8737475340]
 ADMIN_USERNAME = "@happy_gamer2"
 
-# GitHub Configuration
+# GitHub Configuration (Supports GH_TOKEN & GITHUB_TOKEN)
 GITHUB_TOKEN = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or "").strip()
 GITHUB_REPO  = (os.environ.get("GH_REPO") or os.environ.get("GITHUB_REPO") or "sagarhalder7865-hub/my-telegram-bot").strip()
 DATA_FILE    = "bot_data.json"
@@ -44,7 +45,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online On GitHub Actions</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online On GitHub Actions (Fresh DB Engine)</p>
         </body>
         </html>
         """
@@ -273,8 +274,20 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
+def init_db(force_fresh=False):
     with get_db() as db:
+        if force_fresh:
+            db.executescript("""
+                DROP TABLE IF EXISTS users;
+                DROP TABLE IF EXISTS balances;
+                DROP TABLE IF EXISTS keys;
+                DROP TABLE IF EXISTS resellers;
+                DROP TABLE IF EXISTS prices;
+                DROP TABLE IF EXISTS order_history;
+                DROP TABLE IF EXISTS banned_users;
+                DROP TABLE IF EXISTS referrals;
+            """)
+
         db.executescript("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
@@ -329,28 +342,29 @@ def init_db():
             db.execute("INSERT OR IGNORE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
                        (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
 
-        # 2. Pull persistent data from github (custom prices will overwrite defaults)
-        gh_data = pull_data_from_github()
-        if gh_data:
-            for u in gh_data.get("users", []):
-                db.execute("INSERT OR REPLACE INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)", 
-                           (u["user_id"], u.get("first_name",""), u.get("username",""), u.get("referred_by", 0)))
-            for b in gh_data.get("balances", []):
-                db.execute("INSERT OR REPLACE INTO balances (user_id, amount) VALUES (?,?)", (b["user_id"], b["amount"]))
-            for k in gh_data.get("keys", []):
-                db.execute("INSERT OR REPLACE INTO keys (id, plan, key) VALUES (?,?,?)", (k["id"], k["plan"], k["key"]))
-            for r in gh_data.get("resellers", []):
-                db.execute("INSERT OR REPLACE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
-            for p in gh_data.get("prices", []):
-                db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
-                           (p["plan"], p["game"], p["label"], p["regular"], p["reseller"]))
-            for ban in gh_data.get("banned_users", []):
-                db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (ban["user_id"], ban.get("reason", "Admin Ban")))
-            for ref in gh_data.get("referrals", []):
-                db.execute("INSERT OR REPLACE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,?)", (ref["referred_user"], ref["referrer_id"], ref.get("reward_paid", 1)))
-            for o in gh_data.get("order_history", []):
-                db.execute("INSERT OR IGNORE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
-                           (o.get("id"), o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o.get("timestamp")))
+        # 2. Pull persistent data from github
+        if not force_fresh:
+            gh_data = pull_data_from_github()
+            if gh_data:
+                for u in gh_data.get("users", []):
+                    db.execute("INSERT OR REPLACE INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)", 
+                               (u["user_id"], u.get("first_name",""), u.get("username",""), u.get("referred_by", 0)))
+                for b in gh_data.get("balances", []):
+                    db.execute("INSERT OR REPLACE INTO balances (user_id, amount) VALUES (?,?)", (b["user_id"], b["amount"]))
+                for k in gh_data.get("keys", []):
+                    db.execute("INSERT OR REPLACE INTO keys (id, plan, key) VALUES (?,?,?)", (k["id"], k["plan"], k["key"]))
+                for r in gh_data.get("resellers", []):
+                    db.execute("INSERT OR REPLACE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
+                for p in gh_data.get("prices", []):
+                    db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
+                               (p["plan"], p["game"], p["label"], p["regular"], p["reseller"]))
+                for ban in gh_data.get("banned_users", []):
+                    db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (ban["user_id"], ban.get("reason", "Admin Ban")))
+                for ref in gh_data.get("referrals", []):
+                    db.execute("INSERT OR REPLACE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,?)", (ref["referred_user"], ref["referrer_id"], ref.get("reward_paid", 1)))
+                for o in gh_data.get("order_history", []):
+                    db.execute("INSERT OR IGNORE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
+                               (o.get("id"), o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o.get("timestamp")))
 
 def db_is_banned(user_id):
     with get_db() as db:
@@ -942,7 +956,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # --- 👿 AIM-AI CARROM ENGINE MENU (DYNAMICS FROM DB) ---
+    # --- 👿 AIM-AI CARROM ENGINE MENU (DYNAMIC FROM DB) ---
     if query.data == "aim_ai_menu":
         p1 = get_price(user_id, "aim_1d"); p3 = get_price(user_id, "aim_3d")
         p7 = get_price(user_id, "aim_7d"); p15 = get_price(user_id, "aim_15d")
@@ -1232,6 +1246,12 @@ async def expire_payment(user_id, context):
         except Exception: pass
 
 # --- ALL ADMIN COMMANDS ---
+async def cmd_resetdata(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    init_db(force_fresh=True)
+    push_data_to_github()
+    await update.message.reply_text("🧹 <b>DATABASE AND CLOUD DATA FULLY RESET!</b>\nAll tables cleared and initial prices restored.", parse_mode="HTML")
+
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     help_text = (
@@ -1263,6 +1283,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <b>8 Ball:</b> <code>/addkey snk8_3d KEY</code> | <code>/addkey snk8_10d KEY</code> | <code>/addkey snk8_30d KEY</code>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🛠️ <b>অন্যান্য এডমিন কমান্ড:</b>\n"
+        "• <code>/resetdata</code> ➜ ডাটাবেস সম্পূর্ণ ফ্রেশ ও ক্লিয়ার করা\n"
         "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ অটো স্ক্রিপ্ট কি জেনারেট\n"
         "• <code>/cleangist</code> ➜ Gist এর পুরনো এক্সপায়ার কি ডিলিট করা\n"
         "• <code>/testgist</code> ➜ Gist কানেকশন টেস্ট\n"
@@ -1438,10 +1459,12 @@ if __name__ == "__main__":
     if not TOKEN:
         print("ERROR: TELEGRAM_BOT_TOKEN is not set.")
         exit(1)
-    init_db()
+    init_db(force_fresh=False)
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start",          start))
     app.add_handler(CommandHandler("help",           cmd_help))
+    app.add_handler(CommandHandler("resetdata",      cmd_resetdata))
+    app.add_handler(CommandHandler("cleardb",        cmd_resetdata))
     app.add_handler(CommandHandler("referral",       send_referral_panel))
     app.add_handler(CommandHandler("ref",            send_referral_panel))
     app.add_handler(CommandHandler("broadcast",      cmd_broadcast))
