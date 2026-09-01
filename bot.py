@@ -45,7 +45,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Clean DB Instance</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Fast Engine</p>
         </body>
         </html>
         """
@@ -66,7 +66,7 @@ Thread(target=run_web_server, daemon=True).start()
 
 # DEFAULT FRESH INITIAL PRICES
 DEFAULT_PRICES = {
-    # 👿 AIM-AI ENGINE (CARROM)
+    # AIM-AI ENGINE (CARROM)
     "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",   "reg": 120, "res": 100},
     "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days",  "reg": 200, "res": 180},
     "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days",  "reg": 300, "res": 260},
@@ -96,10 +96,10 @@ DEFAULT_PRICES = {
     "f30": {"game": "KOS FreeFire Panel", "label": "30 Days", "reg": 1800, "res": 1500},
 
     # BITAIM
-    "bit7":  {"game": "Bitaim ⚡", "label": "7 Days",    "reg": 65, "res": 50},
-    "bit30": {"game": "Bitaim ⚡", "label": "30 Days",   "reg": 165, "res": 160},
-    "bit90": {"game": "Bitaim ⚡", "label": "3 Months",  "reg": 380, "res": 340},
-    "bitlt": {"game": "Bitaim ⚡", "label": "Life Time", "reg": 1860, "res": 1790},
+    "bit7":  {"game": "Bitaim", "label": "7 Days",    "reg": 65, "res": 50},
+    "bit30": {"game": "Bitaim", "label": "30 Days",   "reg": 165, "res": 160},
+    "bit90": {"game": "Bitaim", "label": "3 Months",  "reg": 380, "res": 340},
+    "bitlt": {"game": "Bitaim", "label": "Life Time", "reg": 1860, "res": 1790},
 
     # SNAKE ENGINE
     "snkc_3d":  {"game": "Snake Carrom", "label": "3 Days",  "reg": 190, "res": 160},
@@ -215,7 +215,10 @@ def purge_expired_gist_keys():
     except Exception as e:
         return 0
 
-# --- GITHUB SYNC ENGINE ---
+# --- ASYNC NON-BLOCKING GITHUB SYNC ENGINE ---
+def push_data_to_github_bg():
+    Thread(target=push_data_to_github, daemon=True).start()
+
 def push_data_to_github():
     if not GITHUB_TOKEN or not GITHUB_REPO: return
     try:
@@ -227,14 +230,14 @@ def push_data_to_github():
         headers = get_auth_headers()
         
         sha = None
-        get_res = requests.get(url, headers=headers, timeout=10)
+        get_res = requests.get(url, headers=headers, timeout=8)
         if get_res.status_code == 200:
             sha = get_res.json().get("sha")
             
-        payload = {"message": "[skip ci] Auto-sync VIP bot fresh data", "content": content_b64}
+        payload = {"message": "[skip ci] Auto-sync VIP bot data", "content": content_b64}
         if sha: payload["sha"] = sha
             
-        requests.put(url, headers=headers, json=payload, timeout=10)
+        requests.put(url, headers=headers, json=payload, timeout=8)
     except Exception as e:
         print(f"GitHub Sync Error: {e}")
 
@@ -243,7 +246,7 @@ def pull_data_from_github():
     try:
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
         headers = get_auth_headers()
-        res = requests.get(url, headers=headers, timeout=10)
+        res = requests.get(url, headers=headers, timeout=8)
         if res.status_code == 200:
             content_b64 = res.json().get("content", "")
             return json.loads(base64.b64decode(content_b64).decode("utf-8"))
@@ -371,12 +374,12 @@ def db_is_banned(user_id):
 def db_ban_user(user_id, reason="Blacklisted"):
     with get_db() as db:
         db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (user_id, reason))
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_unban_user(user_id):
     with get_db() as db:
         db.execute("DELETE FROM banned_users WHERE user_id=?", (user_id,))
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_register_user(user_id, first_name, username, referrer_id=0):
     with get_db() as db:
@@ -389,14 +392,14 @@ def db_register_user(user_id, first_name, username, referrer_id=0):
             if referrer_id > 0 and referrer_id != user_id:
                 db_add_balance(referrer_id, 1)
                 db.execute("INSERT OR IGNORE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,1)", (user_id, referrer_id))
-                push_data_to_github()
+                push_data_to_github_bg()
                 return referrer_id
         else:
             db.execute(
                 "UPDATE users SET first_name=?, username=? WHERE user_id=?",
                 (first_name, username, user_id)
             )
-    push_data_to_github()
+    push_data_to_github_bg()
     return None
 
 def db_get_referral_count(user_id):
@@ -420,7 +423,7 @@ def db_set_balance(user_id, amount):
             "INSERT INTO balances (user_id,amount) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET amount=?",
             (user_id, amount, amount)
         )
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_add_balance(user_id, delta):
     cur = db_get_balance(user_id)
@@ -434,14 +437,14 @@ def db_count_keys(plan):
 def db_add_key(plan, key):
     with get_db() as db:
         db.execute("INSERT OR IGNORE INTO keys (plan,key) VALUES (?,?)", (plan, key))
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_pop_key(plan):
     with get_db() as db:
         row = db.execute("SELECT id,key FROM keys WHERE plan=? ORDER BY id LIMIT 1", (plan,)).fetchone()
         if row:
             db.execute("DELETE FROM keys WHERE id=?", (row["id"],))
-            push_data_to_github()
+            push_data_to_github_bg()
             return row["key"]
     return None
 
@@ -452,12 +455,12 @@ def db_is_reseller(user_id):
 def db_add_reseller(user_id):
     with get_db() as db:
         db.execute("INSERT OR IGNORE INTO resellers (user_id) VALUES (?)", (user_id,))
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_remove_reseller(user_id):
     with get_db() as db:
         db.execute("DELETE FROM resellers WHERE user_id=?", (user_id,))
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_all_resellers():
     with get_db() as db:
@@ -483,7 +486,7 @@ def db_set_price(plan_id, regular, reseller):
             glabel = DEFAULT_PRICES.get(plan_id, {}).get("label", plan_id)
             db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
                        (plan_id, gname, glabel, regular, reseller))
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_record_order(user_id, game, plan_label, price, key_delivered):
     with get_db() as db:
@@ -491,7 +494,7 @@ def db_record_order(user_id, game, plan_label, price, key_delivered):
             "INSERT INTO order_history (user_id, game, plan_label, price, key_delivered) VALUES (?,?,?,?,?)",
             (user_id, game, plan_label, price, key_delivered)
         )
-    push_data_to_github()
+    push_data_to_github_bg()
 
 def db_get_last_purchase(user_id):
     with get_db() as db:
@@ -598,6 +601,7 @@ def price_list_text():
 pending_orders   = {}
 payment_requests = {}
 awaiting_gmail   = {}
+order_locks      = set()
 PAYMENT_TIMEOUT  = 300
 
 def get_main_dashboard(uid, name):
@@ -610,14 +614,14 @@ def get_main_dashboard(uid, name):
         [InlineKeyboardButton("👑 AIM CARROM KING", callback_data="aim_menu")],
         [InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu"), InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu")],
         [InlineKeyboardButton("🐍 Snake Engine", callback_data="snk_menu")],
-        [InlineKeyboardButton("🎁 👥 Referral & Earn (₹1 Per Friend)", callback_data="referral_menu")],
-        [InlineKeyboardButton("💳 ➕ Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 🛍️ My Orders", callback_data="orders_hist")],
-        [InlineKeyboardButton("📥 📂 Download App", url="https://t.me/hgfileall")],
-        [InlineKeyboardButton("💎 👑 Apply For Reseller Panel", callback_data="become_reseller")]
+        [InlineKeyboardButton("🎁 Referral & Earn (₹1 Per Friend)", callback_data="referral_menu")],
+        [InlineKeyboardButton("💳 Add Balance", callback_data="add_bal"), InlineKeyboardButton("📜 My Orders", callback_data="orders_hist")],
+        [InlineKeyboardButton("📥 Download App", url="https://t.me/hgfileall")],
+        [InlineKeyboardButton("👑 Apply For Reseller Panel", callback_data="become_reseller")]
     ]
     
     if uid in ADMINS:
-        inline_kbd.insert(6, [InlineKeyboardButton("🛠️ ⚡ Script Key Generator [Admin]", callback_data="script_key_menu")])
+        inline_kbd.insert(6, [InlineKeyboardButton("🛠️ Script Key Generator [Admin]", callback_data="script_key_menu")])
 
     msg = (
         "╔═══════════════════════════╗\n"
@@ -630,10 +634,10 @@ def get_main_dashboard(uid, name):
         f"🛡️ <b>Account Tier:</b> <b>{role}</b>\n"
         f"📦 <b>Recent Purchase:</b> <i>{last_buy}</i>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "📖 <b>Instant Buying Guide (কীভাবে কি কিনবেন):</b>\n"
-        "1️⃣ <b>Add Balance</b> চেপে কিউআর স্ক্যান করে টাকা যোগ করুন।\n"
-        "2️⃣ <b>Referral & Earn</b> চেপে বন্ধুদের ইনভাইট করে ফ্রি টাকা ইনকাম করুন!\n"
-        "3️⃣ আপনার পছন্দের <b>VIP Hack Engine</b> সিলেক্ট করুন এবং সাথে সাথে কি পেয়ে যান!"
+        "📖 <b>Instant Buying Guide:</b>\n"
+        "1️⃣ Tap <b>Add Balance</b> and scan QR code to add funds.\n"
+        "2️⃣ Tap <b>Referral & Earn</b> to invite friends and earn free balance!\n"
+        "3️⃣ Select your desired <b>VIP Hack Engine</b> to receive instant key!"
     )
     return msg, InlineKeyboardMarkup(inline_kbd)
 
@@ -652,16 +656,10 @@ def get_payment_caption():
         "📌 <b>Official Verified UPI ID:</b>\n"
         "👉 <code>sagarhalder22@axl</code> <i>(Tap to Copy)</i>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🇧🇩 <b>পেমেন্ট করার নিয়ম (বাংলা):</b>\n"
-        "1️⃣ যেকোনো অ্যাপ (GPay/PhonePe/Paytm) দিয়ে QR কোড স্ক্যান করে টাকা পাঠান।\n"
-        "2️⃣ টাকা পাঠানোর পর <b>পেমেন্ট স্ক্রিনশট</b> অথবা <b>১২-সংখ্যার UTR / Ref No</b> এই চ্যাটে পাঠিয়ে দিন।\n"
-        "3️⃣ এডমিন সাথে সাথে চেক করে আপনার একাউন্টে ব্যালেন্স যোগ করে দেবে।\n\n"
-        "🇬🇧 <b>Payment Instructions (English):</b>\n"
-        "1️⃣ Scan & Pay via <b>PhonePe / GPay / Paytm / BHIM</b>.\n"
-        "2️⃣ Send your <b>Payment Screenshot</b> OR type the <b>12-digit UTR / Ref Number</b> in this chat.\n"
-        "3️⃣ Balance will be credited instantly within 5 minutes!\n"
+        "📸 <b>Send Payment Screenshot after payment.</b>\n"
+        "⏳ <b>Verification Time:</b> 5 Minutes\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "⏳ <i>Time Limit: 5 Minutes to complete verification.</i>"
+        "⚡ <i>Balance will be credited directly to your wallet!</i>"
     )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -720,7 +718,7 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
 
     if is_photo:
         photo_id = update.message.photo[-1].file_id
-        await update.message.reply_text("✅ <b>পেমেন্ট স্ক্রিনশট পাওয়া গেছে!</b>\n⏳ এডমিন ভেরিফাই করে ৫ মিনিটের মধ্যে ব্যালেন্স অ্যাড করে দিচ্ছে...", parse_mode="HTML")
+        await update.message.reply_text("✅ <b>Payment screenshot received!</b>\n⏳ Admin is verifying and crediting your balance within 5 minutes...", parse_mode="HTML")
         for admin_id in ADMINS:
             try:
                 await context.bot.send_photo(
@@ -731,7 +729,7 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
                         f"👤 <b>User:</b> {name} (@{username})\n"
                         f"🆔 <b>ID:</b> <code>{user_id}</code> | {role_lbl}\n"
                         f"💳 <b>Current Bal:</b> ₹{db_get_balance(user_id)}\n\n"
-                        "👇 <i>সিলেক্ট করুন কত টাকা ব্যালেন্স যোগ করবেন:</i>"
+                        "👇 <i>Select amount to credit:</i>"
                     ),
                     parse_mode="HTML",
                     reply_markup=InlineKeyboardMarkup(kbd)
@@ -739,7 +737,7 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
             except Exception: pass
     else:
         utr_text = update.message.text.strip()
-        await update.message.reply_text(f"✅ <b>UTR / Ref No:</b> <code>{utr_text}</code> পাওয়া গেছে!\n⏳ এডমিন ভেরিফাই করে ৫ মিনিটের মধ্যে ব্যালেন্স যোগ করে দিচ্ছে...", parse_mode="HTML")
+        await update.message.reply_text(f"✅ <b>UTR / Ref No:</b> <code>{utr_text}</code> received!\n⏳ Admin is verifying within 5 minutes...", parse_mode="HTML")
         for admin_id in ADMINS:
             try:
                 await context.bot.send_message(
@@ -751,7 +749,7 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
                         f"🆔 <b>ID:</b> <code>{user_id}</code> | {role_lbl}\n"
                         f"💳 <b>Current Bal:</b> ₹{db_get_balance(user_id)}\n"
                         f"🛡️ <b>UTR / Ref No:</b> <code>{utr_text}</code>\n\n"
-                        "👇 <i>সিলেক্ট করুন কত টাকা ব্যালেন্স যোগ করবেন:</i>"
+                        "👇 <i>Select amount to credit:</i>"
                     ),
                     parse_mode="HTML",
                     reply_markup=InlineKeyboardMarkup(kbd)
@@ -883,14 +881,14 @@ async def send_referral_panel(update_or_query, context, user_id):
         "╔═══════════════════════════╗\n"
         "║  🎁 <b>REFERRAL & EARN CASH</b> 🎁   ║\n"
         "╚═══════════════════════════╝\n"
-        "✨ <i>বন্ধুদের ইনভাইট করুন এবং ফ্রি ওয়ালেট ব্যালেন্স জিতে নিন!</i>\n"
+        "✨ <i>Invite friends and earn free wallet balance!</i>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"👥 <b>Total Invited Friends:</b> <b>{ref_count} Members</b>\n"
         f"💰 <b>Total Referral Earnings:</b> <code>₹{ref_count * 1}.00</code>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "💎 <b>HOW TO EARN ₹1 PER FRIEND:</b>\n"
-        "1️⃣ আপনার বন্ধুদের নিচের রেফারেল লিংকটি পাঠান।\n"
-        "2️⃣ আপনার লিংক দিয়ে যে-ই বটে প্রথমবার স্টার্ট করবে, সাথে সাথে আপনার একাউন্টে <b>₹১.০০</b> যোগ হবে!\n\n"
+        "1️⃣ Share your referral link with friends.\n"
+        "2️⃣ When they start the bot for the first time, you instantly get <b>₹1.00</b> in your wallet!\n\n"
         f"🔗 <b>Your Exclusive Referral Link:</b>\n"
         f"<code>{ref_link}</code> <i>(Tap to Copy)</i>"
     )
@@ -949,12 +947,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "║   📱 <b>DEVICE ID REQUIRED</b>     ║\n"
             "╚═══════════════════════════╝\n\n"
             f"Validity: <b>{days} Days</b>\n\n"
-            "👉 Please type & send the <b>Target Device ID</b> (e.g. <code>b19fa2468bb7d5d2</code>) in chat:",
+            "👉 Please type & send the <b>Target Device ID</b> in chat:",
             parse_mode="HTML"
         )
         return
 
-    # --- 👿 AIM-AI CARROM ENGINE MENU ---
+    # --- AIM-AI CARROM ENGINE MENU ---
     if query.data == "aim_ai_menu":
         p1 = get_price(user_id, "aim_1d"); p3 = get_price(user_id, "aim_3d")
         p7 = get_price(user_id, "aim_7d"); p15 = get_price(user_id, "aim_15d")
@@ -968,7 +966,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         text = (
             "╔═══════════════════════════╗\n"
-            "║  👿 <b>A I M - A I ENGINE (CARROM)</b> 🔥 ║\n"
+            "║  👿 <b>AIM-AI ENGINE (CARROM)</b> 🔥 ║\n"
             "╚═══════════════════════════╝\n"
             "💎 <b>OFFICIAL CARROM PRICE CATALOG:</b>\n"
             f"• ⌛ 01 Day    ──── <code>₹{p1}</code>\n"
@@ -1120,7 +1118,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"🐍 <b>SNAKE 8 BALL POOL</b>\n• 3 Days ➜ ₹{p3} | 10 Days ➜ ₹{p10} | 30 Days ➜ ₹{p30}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # --- BUYING & CONFIRMATION ---
+    # --- BUYING & INSTANT CONFIRMATION (WITH ANTI-DOUBLE-CLICK LOCK) ---
     if query.data.startswith("buy_"):
         plan_id = query.data.replace("buy_", "")
         plan = db_get_plan(plan_id)
@@ -1138,17 +1136,36 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if query.data == "confirm_buy":
-        if user_id not in pending_orders:
-            await query.edit_message_text("⚠️ <b>No active order session found!</b>", parse_mode="HTML")
+        # 🛡️ Anti-Double Click & Lock Mechanism
+        if user_id in order_locks:
+            await query.answer("⏳ Processing your request, please wait...", show_alert=False)
             return
-        plan_id = pending_orders.pop(user_id)
+
+        if user_id not in pending_orders:
+            # Already completed or session expired
+            await query.answer("✅ Order already processed or invalid session!", show_alert=False)
+            return
+
+        order_locks.add(user_id)
+        
+        # 1. IMMEDIATELY UPDATE BUTTON TO PREVENT SECOND CLICK
+        try:
+            await query.edit_message_text("⏳ <b>Processing order & generating instant VIP key...</b>", parse_mode="HTML")
+        except Exception: pass
+
+        plan_id = pending_orders.pop(user_id, None)
+        if not plan_id:
+            order_locks.discard(user_id)
+            return
+
         plan    = db_get_plan(plan_id)
         price   = get_price(user_id, plan_id)
         bal     = db_get_balance(user_id)
 
         if bal < price:
+            order_locks.discard(user_id)
             await query.edit_message_text(
-                f"❌ <b>INSUFFICIENT FUNDS!</b>\nRequired: ₹{price} | Your Bal: ₹{bal}\n👉 Please tap Add Balance.",
+                f"❌ <b>INSUFFICIENT FUNDS!</b>\nRequired: ₹{price} | Your Balance: ₹{bal}\n👉 Please tap Add Balance.",
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Add Balance Now", callback_data="add_bal")]])
             )
@@ -1156,10 +1173,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if "bit" in plan_id:
             awaiting_gmail[user_id] = plan_id
+            order_locks.discard(user_id)
             await query.edit_message_text("📧 Please send your <b>Google Play Gmail ID</b> in chat:", parse_mode="HTML")
             return
 
         if db_count_keys(plan_id) == 0:
+            order_locks.discard(user_id)
             await query.edit_message_text(f"⚠️ <b>OUT OF STOCK!</b> Contact {ADMIN_USERNAME} for keys.", parse_mode="HTML")
             return
 
@@ -1169,6 +1188,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         gname = plan['game'] if plan else "VIP Hack"
         glabel = plan['label'] if plan else plan_id
         db_record_order(user_id, gname, glabel, price, key)
+
+        order_locks.discard(user_id)
 
         success_receipt = (
             "╔═══════════════════════════╗\n"
@@ -1247,7 +1268,7 @@ async def expire_payment(user_id, context):
 async def cmd_resetdata(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     init_db(force_fresh=True)
-    push_data_to_github()
+    push_data_to_github_bg()
     await update.message.reply_text("🧹 <b>DATABASE & BALANCES COMPLETELY PURGED!</b>\nAll user balances reset to <b>₹0.00</b> and synchronized with GitHub.", parse_mode="HTML")
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1256,7 +1277,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╔═══════════════════════════════════════╗\n"
         "║   👑 <b>ADMIN FULL CONTROL & KEY CODES</b>   ║\n"
         "╚═══════════════════════════════════════╝\n\n"
-        "🔑 <b>কিভাবে কি (KEY) অ্যাড করবেন (/addkey):</b>\n"
+        "🔑 <b>How to Add Stock Key (/addkey):</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "👿 <b>AIM-AI CARROM:</b>\n"
         "• <code>/addkey aim_1d YOUR_KEY</code> (01 Day)\n"
@@ -1280,21 +1301,21 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <b>Carrom:</b> <code>/addkey snkc_3d KEY</code> | <code>/addkey snkc_10d KEY</code> | <code>/addkey snkc_30d KEY</code>\n"
         "• <b>8 Ball:</b> <code>/addkey snk8_3d KEY</code> | <code>/addkey snk8_10d KEY</code> | <code>/addkey snk8_30d KEY</code>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "🛠️ <b>অন্যান্য এডমিন কমান্ড:</b>\n"
-        "• <code>/resetdata</code> বা <code>/resetall</code> ➜ <b>সব ব্যালেন্স ০ করে ডিলিট করা</b>\n"
-        "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ অটো স্ক্রিপ্ট কি জেনারেট\n"
-        "• <code>/cleangist</code> ➜ Gist এর পুরনো এক্সপায়ার কি ডিলিট করা\n"
-        "• <code>/testgist</code> ➜ Gist কানেকশন টেস্ট\n"
-        "• <code>/stock</code> ➜ লাইভ স্টক চেক\n"
-        "• <code>/prices</code> ➜ সব প্রাইস তালিকা\n"
-        "• <code>/add &lt;id&gt; &lt;amount&gt;</code> ➜ ব্যালেন্স দেওয়া\n"
-        "• <code>/broadcast &lt;text&gt;</code> ➜ সব ইউজারকে মেসেজ\n"
-        "• <code>/ban &lt;id&gt;</code> / <code>/unban &lt;id&gt;</code> ➜ ব্যান/আনব্যান\n"
-        "• <code>/reply &lt;id&gt; &lt;text&gt;</code> ➜ ইউজারকে সরাসরি রিপ্লাই\n"
-        "• <code>/deliver &lt;id&gt; &lt;key&gt;</code> ➜ কি ডেলিভারি করা\n"
-        "• <code>/setprice &lt;code&gt; &lt;reg&gt; &lt;res&gt;</code> ➜ দাম পরিবর্তন\n"
-        "• <code>/addreseller &lt;id&gt;</code> / <code>/removereseller &lt;id&gt;</code> ➜ রিসেলার কন্ট্রোল\n"
-        "• <code>/resellers</code> ➜ সব রিসেলারের তালিকা"
+        "🛠️ <b>Other Admin Commands:</b>\n"
+        "• <code>/resetdata</code> / <code>/resetall</code> ➜ Reset all database balances to 0\n"
+        "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ Auto Script Key Generate\n"
+        "• <code>/cleangist</code> ➜ Delete Expired Keys from Gist\n"
+        "• <code>/testgist</code> ➜ Test Gist Connection\n"
+        "• <code>/stock</code> ➜ Check Live Stock\n"
+        "• <code>/prices</code> ➜ View All Price Catalog\n"
+        "• <code>/add &lt;id&gt; &lt;amount&gt;</code> ➜ Add User Balance\n"
+        "• <code>/broadcast &lt;text&gt;</code> ➜ Broadcast Message to All Users\n"
+        "• <code>/ban &lt;id&gt;</code> / <code>/unban &lt;id&gt;</code> ➜ Ban or Unban User\n"
+        "• <code>/reply &lt;id&gt; &lt;text&gt;</code> ➜ Direct Reply to User\n"
+        "• <code>/deliver &lt;id&gt; &lt;key&gt;</code> ➜ Deliver Key Directly\n"
+        "• <code>/setprice &lt;code&gt; &lt;reg&gt; &lt;res&gt;</code> ➜ Update Plan Price\n"
+        "• <code>/addreseller &lt;id&gt;</code> / <code>/removereseller &lt;id&gt;</code> ➜ Reseller Control\n"
+        "• <code>/resellers</code> ➜ View All Resellers"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
@@ -1458,7 +1479,6 @@ if __name__ == "__main__":
         print("ERROR: TELEGRAM_BOT_TOKEN is not set.")
         exit(1)
         
-    # Start fresh
     init_db(force_fresh=False)
     
     app = ApplicationBuilder().token(TOKEN).build()
@@ -1489,5 +1509,5 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("👑 Happy Gamer VIP Telegram Engine Running 24/7 (Clean & Live Synced)...")
+    print("👑 Happy Gamer VIP Telegram Engine Running 24/7 (English & Instant Delivery)...")
     app.run_polling()
