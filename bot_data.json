@@ -436,11 +436,6 @@
       "id": 1,
       "plan": "c7",
       "key": "ECEE1-69A96-38E5C-51B8S"
-    },
-    {
-      "id": 2,
-      "plan": "aim_7d",
-      "key": "AIMAI-7D-PC648HXCFTKNHRM"
     }
   ],
   "resellers": [],
@@ -695,6 +690,15 @@
       "price": 300,
       "key_delivered": "GHHHD_SSAV",
       "timestamp": "2026-09-01 14:07:22"
+    },
+    {
+      "id": 3,
+      "user_id": 6815777043,
+      "game": "AIM-AI Carrom",
+      "plan_label": "07 Days",
+      "price": 300,
+      "key_delivered": "AIMAI-7D-PC648HXCFTKNHRM",
+      "timestamp": "2026-09-01 19:53:04"
     }
   ],
   "referrals": [],
