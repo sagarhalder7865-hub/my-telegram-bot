@@ -45,7 +45,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online On GitHub Actions (Fresh DB Engine)</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online On GitHub Actions (100% Fresh DB Engine)</p>
         </body>
         </html>
         """
@@ -64,13 +64,13 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
-# DEFAULT INITIAL PRICES
+# DEFAULT FRESH INITIAL PRICES
 DEFAULT_PRICES = {
     # 👿 AIM-AI ENGINE (CARROM)
     "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",   "reg": 120, "res": 100},
     "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days",  "reg": 200, "res": 180},
     "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days",  "reg": 300, "res": 260},
-    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 540, "res": 490},
+    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 500, "res": 490},
     "aim_30d": {"game": "AIM-AI Carrom", "label": "30 Days",  "reg": 830, "res": 780},
     "aim_90d": {"game": "AIM-AI Carrom", "label": "90 Days",  "reg": 2100, "res": 2000},
 
@@ -339,10 +339,10 @@ def init_db(force_fresh=False):
         
         # 1. Insert default prices
         for pcode, pdata in DEFAULT_PRICES.items():
-            db.execute("INSERT OR IGNORE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
+            db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
                        (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
 
-        # 2. Pull persistent data from github
+        # 2. Pull persistent data from github ONLY if not fresh
         if not force_fresh:
             gh_data = pull_data_from_github()
             if gh_data:
@@ -1250,7 +1250,7 @@ async def cmd_resetdata(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     init_db(force_fresh=True)
     push_data_to_github()
-    await update.message.reply_text("🧹 <b>DATABASE AND CLOUD DATA FULLY RESET!</b>\nAll tables cleared and initial prices restored.", parse_mode="HTML")
+    await update.message.reply_text("🧹 <b>DATABASE AND CLOUD DATA FULLY RESET!</b>\nAll user balances and data reset to ₹0.", parse_mode="HTML")
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1283,7 +1283,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <b>8 Ball:</b> <code>/addkey snk8_3d KEY</code> | <code>/addkey snk8_10d KEY</code> | <code>/addkey snk8_30d KEY</code>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🛠️ <b>অন্যান্য এডমিন কমান্ড:</b>\n"
-        "• <code>/resetdata</code> ➜ ডাটাবেস সম্পূর্ণ ফ্রেশ ও ক্লিয়ার করা\n"
+        "• <code>/resetdata</code> ➜ সব ব্যালেন্স ও ডাটা 0 করে ফ্রেশ করা\n"
         "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ অটো স্ক্রিপ্ট কি জেনারেট\n"
         "• <code>/cleangist</code> ➜ Gist এর পুরনো এক্সপায়ার কি ডিলিট করা\n"
         "• <code>/testgist</code> ➜ Gist কানেকশন টেস্ট\n"
@@ -1459,7 +1459,10 @@ if __name__ == "__main__":
     if not TOKEN:
         print("ERROR: TELEGRAM_BOT_TOKEN is not set.")
         exit(1)
-    init_db(force_fresh=False)
+    # Start with fresh DB on initial setup
+    init_db(force_fresh=True)
+    push_data_to_github()
+    
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start",          start))
     app.add_handler(CommandHandler("help",           cmd_help))
@@ -1487,5 +1490,5 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("👑 Happy Gamer VIP Telegram Engine Running 24/7...")
+    print("👑 Happy Gamer VIP Telegram Engine Running 24/7 (Fresh & Clean Database)...")
     app.run_polling()
