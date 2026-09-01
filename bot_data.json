@@ -348,11 +348,6 @@
       "id": 1,
       "plan": "c7",
       "key": "ECEE1-69A96-38E5C-51B8S"
-    },
-    {
-      "id": 2,
-      "plan": "aim_3d",
-      "key": "GHHHD_SSNV"
     }
   ],
   "resellers": [],
@@ -589,7 +584,17 @@
       "reseller": 1150
     }
   ],
-  "order_history": [],
+  "order_history": [
+    {
+      "id": 1,
+      "user_id": 8546348748,
+      "game": "AIM-AI Carrom",
+      "plan_label": "03 Days",
+      "price": 200,
+      "key_delivered": "GHHHD_SSNV",
+      "timestamp": "2026-09-01 13:22:44"
+    }
+  ],
   "referrals": [],
   "banned_users": []
 }
