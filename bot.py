@@ -21,12 +21,12 @@ TOKEN    = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMINS   = [8546348748, 8737475340]
 ADMIN_USERNAME = "@happy_gamer2"
 
-# GitHub Configuration (Supports GH_TOKEN & GITHUB_TOKEN)
+# GitHub Configuration
 GITHUB_TOKEN = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or "").strip()
 GITHUB_REPO  = (os.environ.get("GH_REPO") or os.environ.get("GITHUB_REPO") or "sagarhalder7865-hub/my-telegram-bot").strip()
 DATA_FILE    = "bot_data.json"
 
-# Gist Config for Script Key Automation
+# Gist Config
 GIST_ID   = "e155b8f93a7476556fa1c8b2dfc9b164"
 FILE_NAME = "status.txt"
 
@@ -45,7 +45,7 @@ class DummyHandler(BaseHTTPRequestHandler):
         <head><title>Happy Gamer VIP Cloud</title></head>
         <body style="background:#0b0e14;color:#00e5ff;font-family:sans-serif;text-align:center;padding-top:50px;">
             <h1>👑 HAPPY GAMER VIP BOT ENGINE</h1>
-            <p style="color:#00ff66;">⚡ Status: Running 24/7 Online On GitHub Actions (100% Fresh DB Engine)</p>
+            <p style="color:#00ff66;">⚡ Status: Running 24/7 Clean DB Instance</p>
         </body>
         </html>
         """
@@ -110,7 +110,6 @@ DEFAULT_PRICES = {
     "snk8_30d": {"game": "Snake 8Ball", "label": "30 Days", "reg": 1200, "res": 1150},
 }
 
-# --- GIST UTILS ---
 def get_auth_headers():
     token = GITHUB_TOKEN.strip() if GITHUB_TOKEN else ""
     return {
@@ -216,7 +215,7 @@ def purge_expired_gist_keys():
     except Exception as e:
         return 0
 
-# --- GITHUB SYNC ---
+# --- GITHUB SYNC ENGINE ---
 def push_data_to_github():
     if not GITHUB_TOKEN or not GITHUB_REPO: return
     try:
@@ -232,7 +231,7 @@ def push_data_to_github():
         if get_res.status_code == 200:
             sha = get_res.json().get("sha")
             
-        payload = {"message": "[skip ci] Auto-sync VIP bot data", "content": content_b64}
+        payload = {"message": "[skip ci] Auto-sync VIP bot fresh data", "content": content_b64}
         if sha: payload["sha"] = sha
             
         requests.put(url, headers=headers, json=payload, timeout=10)
@@ -337,12 +336,11 @@ def init_db(force_fresh=False):
             );
         """)
         
-        # 1. Insert default prices
+        # Insert default fresh prices
         for pcode, pdata in DEFAULT_PRICES.items():
             db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
                        (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
 
-        # 2. Pull persistent data from github ONLY if not fresh
         if not force_fresh:
             gh_data = pull_data_from_github()
             if gh_data:
@@ -850,7 +848,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg, inline_markup = get_main_dashboard(user_id, name)
         await update.message.reply_text(msg, parse_mode="HTML", reply_markup=inline_markup)
 
-    elif text in ["Check Balance 💰", "💰 Balance"]:
+    elif text in ["Check Balance 💰", "💰 Balance", "/balance"]:
         bal = db_get_balance(user_id)
         role = " [👑 VIP Reseller]" if db_is_reseller(user_id) else " [Customer]"
         await update.message.reply_text(f"💳 <b>Your Wallet Balance:</b> <code>₹{bal}.00</code>\n🏷️ <b>Status:</b> <b>{role}</b>", parse_mode="HTML")
@@ -956,7 +954,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # --- 👿 AIM-AI CARROM ENGINE MENU (DYNAMIC FROM DB) ---
+    # --- 👿 AIM-AI CARROM ENGINE MENU ---
     if query.data == "aim_ai_menu":
         p1 = get_price(user_id, "aim_1d"); p3 = get_price(user_id, "aim_3d")
         p7 = get_price(user_id, "aim_7d"); p15 = get_price(user_id, "aim_15d")
@@ -1250,7 +1248,7 @@ async def cmd_resetdata(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     init_db(force_fresh=True)
     push_data_to_github()
-    await update.message.reply_text("🧹 <b>DATABASE AND CLOUD DATA FULLY RESET!</b>\nAll user balances and data reset to ₹0.", parse_mode="HTML")
+    await update.message.reply_text("🧹 <b>DATABASE & BALANCES COMPLETELY PURGED!</b>\nAll user balances reset to <b>₹0.00</b> and synchronized with GitHub.", parse_mode="HTML")
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1283,7 +1281,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <b>8 Ball:</b> <code>/addkey snk8_3d KEY</code> | <code>/addkey snk8_10d KEY</code> | <code>/addkey snk8_30d KEY</code>\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🛠️ <b>অন্যান্য এডমিন কমান্ড:</b>\n"
-        "• <code>/resetdata</code> ➜ সব ব্যালেন্স ও ডাটা 0 করে ফ্রেশ করা\n"
+        "• <code>/resetdata</code> বা <code>/resetall</code> ➜ <b>সব ব্যালেন্স ০ করে ডিলিট করা</b>\n"
         "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ অটো স্ক্রিপ্ট কি জেনারেট\n"
         "• <code>/cleangist</code> ➜ Gist এর পুরনো এক্সপায়ার কি ডিলিট করা\n"
         "• <code>/testgist</code> ➜ Gist কানেকশন টেস্ট\n"
@@ -1459,14 +1457,15 @@ if __name__ == "__main__":
     if not TOKEN:
         print("ERROR: TELEGRAM_BOT_TOKEN is not set.")
         exit(1)
-    # Start with fresh DB on initial setup
-    init_db(force_fresh=True)
-    push_data_to_github()
+        
+    # Start fresh
+    init_db(force_fresh=False)
     
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start",          start))
     app.add_handler(CommandHandler("help",           cmd_help))
     app.add_handler(CommandHandler("resetdata",      cmd_resetdata))
+    app.add_handler(CommandHandler("resetall",       cmd_resetdata))
     app.add_handler(CommandHandler("cleardb",        cmd_resetdata))
     app.add_handler(CommandHandler("referral",       send_referral_panel))
     app.add_handler(CommandHandler("ref",            send_referral_panel))
@@ -1490,5 +1489,5 @@ if __name__ == "__main__":
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("👑 Happy Gamer VIP Telegram Engine Running 24/7 (Fresh & Clean Database)...")
+    print("👑 Happy Gamer VIP Telegram Engine Running 24/7 (Clean & Live Synced)...")
     app.run_polling()
