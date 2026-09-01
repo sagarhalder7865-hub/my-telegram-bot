@@ -70,7 +70,7 @@ DEFAULT_PRICES = {
     "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",   "reg": 120, "res": 100},
     "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days",  "reg": 200, "res": 180},
     "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days",  "reg": 300, "res": 260},
-    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 500, "res": 490},
+    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 540, "res": 490},
     "aim_30d": {"game": "AIM-AI Carrom", "label": "30 Days",  "reg": 830, "res": 780},
     "aim_90d": {"game": "AIM-AI Carrom", "label": "90 Days",  "reg": 2100, "res": 2000},
 
