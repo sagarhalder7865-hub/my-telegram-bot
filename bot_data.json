@@ -447,8 +447,8 @@
       "plan": "aim_30d",
       "game": "AIM-AI Carrom",
       "label": "30 Days",
-      "regular": 830,
-      "reseller": 780
+      "regular": 850,
+      "reseller": 850
     },
     {
       "plan": "aim_90d",
