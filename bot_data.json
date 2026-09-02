@@ -501,11 +501,7 @@
       "key": "ECEE1-69A96-38E5C-51B8S"
     }
   ],
-  "resellers": [
-    {
-      "user_id": 8546348748
-    }
-  ],
+  "resellers": [],
   "prices": [
     {
       "plan": "aim_1d",
