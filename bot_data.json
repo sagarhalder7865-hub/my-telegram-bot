@@ -457,6 +457,11 @@
       "id": 1,
       "plan": "c7",
       "key": "ECEE1-69A96-38E5C-51B8S"
+    },
+    {
+      "id": 2,
+      "plan": "aim_3d",
+      "key": "jhhggfd"
     }
   ],
   "resellers": [],
