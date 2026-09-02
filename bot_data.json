@@ -449,7 +449,7 @@
     },
     {
       "user_id": 8546348748,
-      "amount": 4200
+      "amount": 4000
     }
   ],
   "keys": [
@@ -457,11 +457,6 @@
       "id": 1,
       "plan": "c7",
       "key": "ECEE1-69A96-38E5C-51B8S"
-    },
-    {
-      "id": 2,
-      "plan": "aim_3d",
-      "key": "jhhggfd"
     }
   ],
   "resellers": [],
@@ -734,6 +729,15 @@
       "price": 300,
       "key_delivered": "AIMAI-7D-PC648HXCFTKNHSE",
       "timestamp": "2026-09-01 20:19:05"
+    },
+    {
+      "id": 5,
+      "user_id": 8546348748,
+      "game": "AIM-AI Carrom",
+      "plan_label": "03 Days",
+      "price": 200,
+      "key_delivered": "jhhggfd",
+      "timestamp": "2026-09-02 05:27:05"
     }
   ],
   "referrals": [],
