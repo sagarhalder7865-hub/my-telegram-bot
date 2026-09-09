@@ -1,4 +1,3 @@
-
 import os
 import json
 import base64
@@ -264,10 +263,11 @@ def export_database_json():
         orders = [dict(r) for r in db.execute("SELECT * FROM order_history").fetchall()]
         referrals = [dict(r) for r in db.execute("SELECT * FROM referrals").fetchall()]
         banned = [dict(r) for r in db.execute("SELECT * FROM banned_users").fetchall()]
+        script_admins = [dict(r) for r in db.execute("SELECT * FROM script_admins").fetchall()]
     return {
         "users": users, "balances": balances, "keys": keys,
         "resellers": resellers, "prices": prices, "order_history": orders,
-        "referrals": referrals, "banned_users": banned
+        "referrals": referrals, "banned_users": banned, "script_admins": script_admins
     }
 
 # --- DATABASE SETUP ---
@@ -288,6 +288,7 @@ def init_db(force_fresh=False):
                 DROP TABLE IF EXISTS order_history;
                 DROP TABLE IF EXISTS banned_users;
                 DROP TABLE IF EXISTS referrals;
+                DROP TABLE IF EXISTS script_admins;
             """)
 
         db.executescript("""
@@ -337,6 +338,9 @@ def init_db(force_fresh=False):
                 reward_paid INTEGER DEFAULT 1,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS script_admins (
+                user_id INTEGER PRIMARY KEY
+            );
         """)
         
         # Insert default fresh prices
@@ -366,6 +370,8 @@ def init_db(force_fresh=False):
                 for o in gh_data.get("order_history", []):
                     db.execute("INSERT OR IGNORE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
                                (o.get("id"), o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o.get("timestamp")))
+                for sa in gh_data.get("script_admins", []):
+                    db.execute("INSERT OR REPLACE INTO script_admins (user_id) VALUES (?)", (sa["user_id"],))
 
 def db_is_banned(user_id):
     with get_db() as db:
@@ -465,6 +471,24 @@ def db_remove_reseller(user_id):
 def db_all_resellers():
     with get_db() as db:
         return [r["user_id"] for r in db.execute("SELECT user_id FROM resellers").fetchall()]
+
+def db_is_script_admin(user_id):
+    with get_db() as db:
+        return db.execute("SELECT 1 FROM script_admins WHERE user_id=?", (user_id,)).fetchone() is not None
+
+def db_add_script_admin(user_id):
+    with get_db() as db:
+        db.execute("INSERT OR IGNORE INTO script_admins (user_id) VALUES (?)", (user_id,))
+    push_data_to_github_bg()
+
+def db_remove_script_admin(user_id):
+    with get_db() as db:
+        db.execute("DELETE FROM script_admins WHERE user_id=?", (user_id,))
+    push_data_to_github_bg()
+
+def db_all_script_admins():
+    with get_db() as db:
+        return [r["user_id"] for r in db.execute("SELECT user_id FROM script_admins").fetchall()]
 
 def db_get_plan(plan_id):
     with get_db() as db:
@@ -620,7 +644,7 @@ def get_main_dashboard(uid, name):
         [InlineKeyboardButton("👑 Apply For Reseller Panel", callback_data="become_reseller")]
     ]
     
-    if uid in ADMINS:
+    if uid in ADMINS or db_is_script_admin(uid):
         inline_kbd.insert(6, [InlineKeyboardButton("🛠️ Script Key Generator [Admin]", callback_data="script_key_menu")])
 
     msg = (
@@ -770,7 +794,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db_register_user(user_id, name, username)
 
     # 1. ADMIN SCRIPT KEY GENERATION
-    if user_id in ADMINS and "script_gen_days" in context.user_data:
+    if (user_id in ADMINS or db_is_script_admin(user_id)) and "script_gen_days" in context.user_data:
         days = context.user_data.pop("script_gen_days")
         device_id = text.strip()
         
@@ -921,7 +945,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if query.data == "script_key_menu":
-        if user_id not in ADMINS: return
+        if user_id not in ADMINS and not db_is_script_admin(user_id): return
         kbd = [
             [InlineKeyboardButton("⚡ 1 Day", callback_data="sgen_1"), InlineKeyboardButton("⚡ 3 Days", callback_data="sgen_3")],
             [InlineKeyboardButton("⚡ 7 Days", callback_data="sgen_7"), InlineKeyboardButton("⚡ 15 Days", callback_data="sgen_15")],
@@ -939,7 +963,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if query.data.startswith("sgen_"):
-        if user_id not in ADMINS: return
+        if user_id not in ADMINS and not db_is_script_admin(user_id): return
         days = int(query.data.replace("sgen_", ""))
         context.user_data["script_gen_days"] = days
         await query.edit_message_text(
@@ -1315,12 +1339,40 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <code>/deliver &lt;id&gt; &lt;key&gt;</code> ➜ Deliver Key Directly\n"
         "• <code>/setprice &lt;code&gt; &lt;reg&gt; &lt;res&gt;</code> ➜ Update Plan Price\n"
         "• <code>/addreseller &lt;id&gt;</code> / <code>/removereseller &lt;id&gt;</code> ➜ Reseller Control\n"
+        "• <code>/addscriptadmin &lt;id&gt;</code> ➜ Add Script Key Admin\n"
+        "• <code>/removescriptadmin &lt;id&gt;</code> ➜ Remove Script Key Admin\n"
+        "• <code>/scriptadmins</code> ➜ View All Script Admins\n"
         "• <code>/resellers</code> ➜ View All Resellers"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
-async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def cmd_addscriptadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
+    try:
+        uid = int(context.args[0])
+        db_add_script_admin(uid)
+        await update.message.reply_text(f"✅ User <code>{uid}</code> added as Script Key Generator Admin!", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/addscriptadmin &lt;user_id&gt;</code>", parse_mode="HTML")
+
+async def cmd_removescriptadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    try:
+        uid = int(context.args[0])
+        db_remove_script_admin(uid)
+        await update.message.reply_text(f"❌ User <code>{uid}</code> removed from Script Key Admins.", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/removescriptadmin &lt;user_id&gt;</code>", parse_mode="HTML")
+
+async def cmd_scriptadmins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    alist = db_all_script_admins()
+    if not alist:
+        await update.message.reply_text("<i>No script admins registered yet.</i>", parse_mode="HTML")
+        return
+    await update.message.reply_text("🛠️ <b>SCRIPT KEY ADMINS:</b>\n" + "\n".join(f"• <code>{a}</code>" for a in alist), parse_mode="HTML")
+
+
+async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS and not db_is_script_admin(update.effective_user.id): return
     if len(context.args) < 2:
         await update.message.reply_text("💡 <b>Format:</b> <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>", parse_mode="HTML")
         return
@@ -1506,6 +1558,10 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("addreseller",    cmd_addreseller))
     app.add_handler(CommandHandler("removereseller", cmd_removereseller))
     app.add_handler(CommandHandler("resellers",      cmd_resellers))
+    app.add_handler(CommandHandler("addscriptadmin", cmd_addscriptadmin))
+    app.add_handler(CommandHandler("removescriptadmin", cmd_removescriptadmin))
+    app.add_handler(CommandHandler("scriptadmins",   cmd_scriptadmins))
+    
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
