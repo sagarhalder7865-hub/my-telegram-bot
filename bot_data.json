@@ -1116,5 +1116,9 @@
   ],
   "referrals": [],
   "banned_users": [],
-  "script_admins": []
+  "script_admins": [
+    {
+      "user_id": 6824314386
+    }
+  ]
 }
