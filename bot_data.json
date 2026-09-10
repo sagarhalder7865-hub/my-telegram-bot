@@ -1137,6 +1137,10 @@
   ],
   "script_balances": [
     {
+      "user_id": 6101241821,
+      "amount": 5000
+    },
+    {
       "user_id": 6824314386,
       "amount": 2620
     }
