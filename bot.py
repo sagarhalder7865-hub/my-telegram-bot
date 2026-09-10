@@ -63,9 +63,18 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
+# SCRIPT KEY PRICING (FOR SCRIPT ADMINS)
+SCRIPT_PRICES = {
+    1: 20,
+    3: 40,
+    7: 80,
+    15: 150,
+    30: 200,
+    90: 500
+}
+
 # DEFAULT FRESH INITIAL PRICES
 DEFAULT_PRICES = {
-    # AIM-AI ENGINE (CARROM)
     "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",   "reg": 120, "res": 100},
     "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days",  "reg": 200, "res": 180},
     "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days",  "reg": 300, "res": 260},
@@ -73,7 +82,6 @@ DEFAULT_PRICES = {
     "aim_30d": {"game": "AIM-AI Carrom", "label": "30 Days",  "reg": 830, "res": 780},
     "aim_90d": {"game": "AIM-AI Carrom", "label": "90 Days",  "reg": 2100, "res": 2000},
 
-    # AIM CARROM KING
     "acn_3d":  {"game": "AIM Carrom Normal", "label": "3 Days",  "reg": 250, "res": 220},
     "acn_7d":  {"game": "AIM Carrom Normal", "label": "1 Week",  "reg": 360, "res": 330},
     "acn_30d": {"game": "AIM Carrom Normal", "label": "1 Month", "reg": 1000, "res": 950},
@@ -81,7 +89,6 @@ DEFAULT_PRICES = {
     "acp_7d":  {"game": "AIM Carrom Premium", "label": "1 Week",  "reg": 480, "res": 460},
     "acp_30d": {"game": "AIM Carrom Premium", "label": "1 Month", "reg": 1250, "res": 1180},
 
-    # KOS ENGINE
     "b1":  {"game": "KOS 8 Ball", "label": "1 Day",   "reg": 180, "res": 150},
     "b7":  {"game": "KOS 8 Ball", "label": "7 Days",  "reg": 500, "res": 450},
     "b15": {"game": "KOS 8 Ball", "label": "15 Days", "reg": 900, "res": 800},
@@ -94,13 +101,11 @@ DEFAULT_PRICES = {
     "f7":  {"game": "KOS FreeFire Panel", "label": "7 Days",  "reg": 600, "res": 500},
     "f30": {"game": "KOS FreeFire Panel", "label": "30 Days", "reg": 1800, "res": 1500},
 
-    # BITAIM
     "bit7":  {"game": "Bitaim", "label": "7 Days",    "reg": 65, "res": 50},
     "bit30": {"game": "Bitaim", "label": "30 Days",   "reg": 165, "res": 160},
     "bit90": {"game": "Bitaim", "label": "3 Months",  "reg": 380, "res": 340},
     "bitlt": {"game": "Bitaim", "label": "Life Time", "reg": 1860, "res": 1790},
 
-    # SNAKE ENGINE
     "snkc_3d":  {"game": "Snake Carrom", "label": "3 Days",  "reg": 190, "res": 160},
     "snkc_10d": {"game": "Snake Carrom", "label": "10 Days", "reg": 450, "res": 400},
     "snkc_30d": {"game": "Snake Carrom", "label": "30 Days", "reg": 900, "res": 830},
@@ -117,9 +122,17 @@ def get_auth_headers():
         "User-Agent": "HappyGamerApp"
     }
 
-def generate_short_key():
+def generate_short_key(name="", is_main=True):
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"HG{random_chars}"
+    if is_main:
+        return f"HG{random_chars}"
+    else:
+        prefix = "".join([c for c in name if c.isalpha()]).upper()
+        if len(prefix) >= 2:
+            prefix = prefix[:2]
+        else:
+            prefix = "SA"
+        return f"{prefix}{random_chars}"
 
 def clean_expired_lines(content_text):
     today_str = datetime.datetime.now().strftime("%Y%m%d")
@@ -155,7 +168,7 @@ def clean_expired_lines(content_text):
 def append_to_gist(vip_key, device_id, days):
     try:
         if not GITHUB_TOKEN:
-            return False, None, "GitHub Token is not set in Environment!"
+            return False, None, "Server Token is not set in Environment!"
 
         expiry = (datetime.datetime.now() + datetime.timedelta(days=days)).strftime("%Y%m%d")
         new_entry = f"HGTOKEN={vip_key}={expiry}={device_id}"
@@ -214,7 +227,6 @@ def purge_expired_gist_keys():
     except Exception as e:
         return 0
 
-# --- ASYNC NON-BLOCKING GITHUB SYNC ENGINE ---
 def push_data_to_github_bg():
     Thread(target=push_data_to_github, daemon=True).start()
 
@@ -238,7 +250,7 @@ def push_data_to_github():
             
         requests.put(url, headers=headers, json=payload, timeout=8)
     except Exception as e:
-        print(f"GitHub Sync Error: {e}")
+        pass
 
 def pull_data_from_github():
     if not GITHUB_TOKEN or not GITHUB_REPO: return None
@@ -250,7 +262,7 @@ def pull_data_from_github():
             content_b64 = res.json().get("content", "")
             return json.loads(base64.b64decode(content_b64).decode("utf-8"))
     except Exception as e:
-        print(f"GitHub Pull Error: {e}")
+        pass
     return None
 
 def export_database_json():
@@ -264,13 +276,14 @@ def export_database_json():
         referrals = [dict(r) for r in db.execute("SELECT * FROM referrals").fetchall()]
         banned = [dict(r) for r in db.execute("SELECT * FROM banned_users").fetchall()]
         script_admins = [dict(r) for r in db.execute("SELECT * FROM script_admins").fetchall()]
+        script_balances = [dict(r) for r in db.execute("SELECT * FROM script_balances").fetchall()]
     return {
         "users": users, "balances": balances, "keys": keys,
         "resellers": resellers, "prices": prices, "order_history": orders,
-        "referrals": referrals, "banned_users": banned, "script_admins": script_admins
+        "referrals": referrals, "banned_users": banned, "script_admins": script_admins,
+        "script_balances": script_balances
     }
 
-# --- DATABASE SETUP ---
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -289,6 +302,7 @@ def init_db(force_fresh=False):
                 DROP TABLE IF EXISTS banned_users;
                 DROP TABLE IF EXISTS referrals;
                 DROP TABLE IF EXISTS script_admins;
+                DROP TABLE IF EXISTS script_balances;
             """)
 
         db.executescript("""
@@ -341,9 +355,12 @@ def init_db(force_fresh=False):
             CREATE TABLE IF NOT EXISTS script_admins (
                 user_id INTEGER PRIMARY KEY
             );
+            CREATE TABLE IF NOT EXISTS script_balances (
+                user_id INTEGER PRIMARY KEY,
+                amount  INTEGER NOT NULL DEFAULT 0
+            );
         """)
         
-        # Insert default fresh prices
         for pcode, pdata in DEFAULT_PRICES.items():
             db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
                        (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
@@ -372,6 +389,8 @@ def init_db(force_fresh=False):
                                (o.get("id"), o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o.get("timestamp")))
                 for sa in gh_data.get("script_admins", []):
                     db.execute("INSERT OR REPLACE INTO script_admins (user_id) VALUES (?)", (sa["user_id"],))
+                for sb in gh_data.get("script_balances", []):
+                    db.execute("INSERT OR REPLACE INTO script_balances (user_id, amount) VALUES (?,?)", (sb["user_id"], sb["amount"]))
 
 def db_is_banned(user_id):
     with get_db() as db:
@@ -434,6 +453,24 @@ def db_set_balance(user_id, amount):
 def db_add_balance(user_id, delta):
     cur = db_get_balance(user_id)
     db_set_balance(user_id, cur + delta)
+    return cur + delta
+
+def db_get_script_balance(user_id):
+    with get_db() as db:
+        row = db.execute("SELECT amount FROM script_balances WHERE user_id=?", (user_id,)).fetchone()
+    return row["amount"] if row else 0
+
+def db_set_script_balance(user_id, amount):
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO script_balances (user_id,amount) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET amount=?",
+            (user_id, amount, amount)
+        )
+    push_data_to_github_bg()
+
+def db_add_script_balance(user_id, delta):
+    cur = db_get_script_balance(user_id)
+    db_set_script_balance(user_id, cur + delta)
     return cur + delta
 
 def db_count_keys(plan):
@@ -793,13 +830,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db_register_user(user_id, name, username)
 
-    # 1. ADMIN SCRIPT KEY GENERATION
     if (user_id in ADMINS or db_is_script_admin(user_id)) and "script_gen_days" in context.user_data:
         days = context.user_data.pop("script_gen_days")
         device_id = text.strip()
         
-        vip_key = generate_short_key()
-        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist & Generating...</i>", parse_mode="HTML")
+        is_main = user_id in ADMINS
+        
+        if not is_main:
+            price = SCRIPT_PRICES.get(days, 0)
+            s_bal = db_get_script_balance(user_id)
+            if s_bal < price:
+                await update.message.reply_text(f"❌ <b>INSUFFICIENT SCRIPT BALANCE!</b>\nRequired: ₹{price}\nYour Balance: ₹{s_bal}", parse_mode="HTML")
+                return
+            db_add_script_balance(user_id, -price)
+        
+        vip_key = generate_short_key(name, is_main)
+        status_msg = await update.message.reply_text("⏳ <i>Connecting to Secure Cloud Server & Generating Key...</i>", parse_mode="HTML")
         success, expiry, err = append_to_gist(vip_key, device_id, days)
         
         if success:
@@ -810,17 +856,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"👤 <b>Admin:</b> {name}\n"
                 f"⏳ <b>Validity:</b> {days} Days (Expires: <code>{expiry}</code>)\n"
                 f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
-                "☁️ <b>GitHub Gist:</b> <i>Updated & Auto-Cleaned ✅</i>\n"
+                "☁️ <b>Cloud Server:</b> <i>Key Activated ✅</i>\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 "🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
                 f"<code>{vip_key}</code>"
             )
             await status_msg.edit_text(receipt_msg, parse_mode="HTML")
         else:
-            await status_msg.edit_text(f"❌ <b>GitHub Gist Update Failed:</b> <code>{err}</code>", parse_mode="HTML")
+            if not is_main:
+                db_add_script_balance(user_id, price)
+            await status_msg.edit_text(f"❌ <b>Cloud Update Failed:</b> <code>{err}</code>", parse_mode="HTML")
         return
 
-    # 2. BITAIM GMAIL HANDLER
     if user_id in awaiting_gmail:
         plan_id = awaiting_gmail.pop(user_id)
         plan    = db_get_plan(plan_id)
@@ -946,16 +993,22 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "script_key_menu":
         if user_id not in ADMINS and not db_is_script_admin(user_id): return
+        
+        is_main = user_id in ADMINS
+        s_bal = db_get_script_balance(user_id)
+        bal_text = "Unlimited (Main Admin)" if is_main else f"₹{s_bal}"
+
         kbd = [
-            [InlineKeyboardButton("⚡ 1 Day", callback_data="sgen_1"), InlineKeyboardButton("⚡ 3 Days", callback_data="sgen_3")],
-            [InlineKeyboardButton("⚡ 7 Days", callback_data="sgen_7"), InlineKeyboardButton("⚡ 15 Days", callback_data="sgen_15")],
-            [InlineKeyboardButton("👑 30 Days", callback_data="sgen_30"), InlineKeyboardButton("⚡ 60 Days", callback_data="sgen_60")],
+            [InlineKeyboardButton("⚡ 1 Day (₹20)", callback_data="sgen_1"), InlineKeyboardButton("⚡ 3 Days (₹40)", callback_data="sgen_3")],
+            [InlineKeyboardButton("⚡ 7 Days (₹80)", callback_data="sgen_7"), InlineKeyboardButton("⚡ 15 Days (₹150)", callback_data="sgen_15")],
+            [InlineKeyboardButton("👑 30 Days (₹200)", callback_data="sgen_30"), InlineKeyboardButton("⚡ 90 Days (₹500)", callback_data="sgen_90")],
             [InlineKeyboardButton("◀️ Back to Main Menu", callback_data="back_main")]
         ]
         await query.edit_message_text(
             "╔═══════════════════════════╗\n"
             "║  🛠️ <b>SCRIPT KEY GENERATOR</b>   ║\n"
             "╚═══════════════════════════╝\n\n"
+            f"💰 <b>Your Script Balance:</b> <code>{bal_text}</code>\n\n"
             "Select validity duration for the Script VIP Key:",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(kbd)
@@ -976,7 +1029,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # --- AIM-AI CARROM ENGINE MENU ---
     if query.data == "aim_ai_menu":
         p1 = get_price(user_id, "aim_1d"); p3 = get_price(user_id, "aim_3d")
         p7 = get_price(user_id, "aim_7d"); p15 = get_price(user_id, "aim_15d")
@@ -1005,7 +1057,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # --- AIM CARROM KING MENU ---
     if query.data == "aim_menu":
         keyboard = [
             [InlineKeyboardButton("🟢 AIM Normal Engine", callback_data="aim_normal")],
@@ -1060,7 +1111,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # --- KOS MENU ---
     if query.data == "kos_menu":
         keyboard = [
             [InlineKeyboardButton("🎱 8 Ball Pool Panel", callback_data="kos_8b")],
@@ -1101,7 +1151,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"🔥 <b>KOS FREEFIRE PANEL VIP</b>\n• 1 Day ➜ ₹{p1} | 7 Days ➜ ₹{p7} | 30 Days ➜ ₹{p30}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # BITAIM MENU
     if query.data == "bitaim_menu":
         p7 = get_price(user_id, "bit7"); p30 = get_price(user_id, "bit30"); p90 = get_price(user_id, "bit90"); plt = get_price(user_id, "bitlt")
         keyboard = [
@@ -1112,7 +1161,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"⚡ <b>BITAIM OFFICIAL SYSTEM</b>\n• 7 Days ➜ ₹{p7} | 30 Days ➜ ₹{p30} | 3 Months ➜ ₹{p90} | Lifetime ➜ ₹{plt}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # SNAKE MENU
     if query.data == "snk_menu":
         keyboard = [
             [InlineKeyboardButton("🎯 Snake Carrom Pool", callback_data="snkc_sub")],
@@ -1142,7 +1190,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"🐍 <b>SNAKE 8 BALL POOL</b>\n• 3 Days ➜ ₹{p3} | 10 Days ➜ ₹{p10} | 30 Days ➜ ₹{p30}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # --- BUYING & INSTANT CONFIRMATION (WITH ANTI-DOUBLE-CLICK LOCK) ---
     if query.data.startswith("buy_"):
         plan_id = query.data.replace("buy_", "")
         plan = db_get_plan(plan_id)
@@ -1160,19 +1207,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if query.data == "confirm_buy":
-        # 🛡️ Anti-Double Click & Lock Mechanism
         if user_id in order_locks:
             await query.answer("⏳ Processing your request, please wait...", show_alert=False)
             return
 
         if user_id not in pending_orders:
-            # Already completed or session expired
             await query.answer("✅ Order already processed or invalid session!", show_alert=False)
             return
 
         order_locks.add(user_id)
         
-        # 1. IMMEDIATELY UPDATE BUTTON TO PREVENT SECOND CLICK
         try:
             await query.edit_message_text("⏳ <b>Processing order & generating instant VIP key...</b>", parse_mode="HTML")
         except Exception: pass
@@ -1328,8 +1372,8 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛠️ <b>Other Admin Commands:</b>\n"
         "• <code>/resetdata</code> / <code>/resetall</code> ➜ Reset all database balances to 0\n"
         "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ Auto Script Key Generate\n"
-        "• <code>/cleangist</code> ➜ Delete Expired Keys from Gist\n"
-        "• <code>/testgist</code> ➜ Test Gist Connection\n"
+        "• <code>/cleangist</code> ➜ Delete Expired Keys from Cloud\n"
+        "• <code>/testgist</code> ➜ Test Cloud Connection\n"
         "• <code>/stock</code> ➜ Check Live Stock\n"
         "• <code>/prices</code> ➜ View All Price Catalog\n"
         "• <code>/add &lt;id&gt; &lt;amount&gt;</code> ➜ Add User Balance\n"
@@ -1342,6 +1386,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• <code>/addscriptadmin &lt;id&gt;</code> ➜ Add Script Key Admin\n"
         "• <code>/removescriptadmin &lt;id&gt;</code> ➜ Remove Script Key Admin\n"
         "• <code>/scriptadmins</code> ➜ View All Script Admins\n"
+        "• <code>/addscriptbal &lt;id&gt; &lt;amount&gt;</code> ➜ Add Balance for Script Admins\n"
         "• <code>/resellers</code> ➜ View All Resellers"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
@@ -1370,18 +1415,46 @@ async def cmd_scriptadmins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text("🛠️ <b>SCRIPT KEY ADMINS:</b>\n" + "\n".join(f"• <code>{a}</code>" for a in alist), parse_mode="HTML")
 
+async def cmd_addscriptbal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMINS: return
+    try:
+        uid = int(context.args[0])
+        amount = int(context.args[1])
+        new_bal = db_add_script_balance(uid, amount)
+        await update.message.reply_text(f"✅ Credited ₹{amount} Script Balance to <code>{uid}</code>\n💳 New Script Balance: ₹{new_bal}", parse_mode="HTML")
+        try: await context.bot.send_message(uid, f"🎉 <b>Admin added ₹{amount} to your Script Wallet!</b>\n💳 Current Script Balance: ₹{new_bal}", parse_mode="HTML")
+        except Exception: pass
+    except Exception: 
+        await update.message.reply_text("Usage: <code>/addscriptbal &lt;user_id&gt; &lt;amount&gt;</code>", parse_mode="HTML")
 
 async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS and not db_is_script_admin(update.effective_user.id): return
+    user_id = update.effective_user.id
+    name = update.effective_user.first_name
+    is_main = user_id in ADMINS
+    
+    if not is_main and not db_is_script_admin(user_id): return
+    
     if len(context.args) < 2:
         await update.message.reply_text("💡 <b>Format:</b> <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>", parse_mode="HTML")
         return
     try:
         days = int(context.args[0])
         device_id = context.args[1].strip()
-        vip_key = generate_short_key()
         
-        status_msg = await update.message.reply_text("⏳ <i>Syncing with GitHub Gist & Auto-Pruning Expired Keys...</i>", parse_mode="HTML")
+        if not is_main:
+            price = SCRIPT_PRICES.get(days)
+            if price is None:
+                await update.message.reply_text("❌ <b>Invalid Days!</b> Allowed: 1, 3, 7, 15, 30, 90", parse_mode="HTML")
+                return
+            s_bal = db_get_script_balance(user_id)
+            if s_bal < price:
+                await update.message.reply_text(f"❌ <b>INSUFFICIENT SCRIPT BALANCE!</b>\nRequired: ₹{price}\nYour Balance: ₹{s_bal}", parse_mode="HTML")
+                return
+            db_add_script_balance(user_id, -price)
+            
+        vip_key = generate_short_key(name, is_main)
+        
+        status_msg = await update.message.reply_text("⏳ <i>Connecting to Secure Cloud Server & Generating Key...</i>", parse_mode="HTML")
         success, expiry, err = append_to_gist(vip_key, device_id, days)
         
         if success:
@@ -1389,36 +1462,38 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "╔═══════════════════════════╗\n"
                 "║  👑 <b>SCRIPT KEY GENERATED!</b>   ║\n"
                 "╚═══════════════════════════╝\n"
-                f"👤 <b>Admin:</b> {update.effective_user.first_name}\n"
+                f"👤 <b>Admin:</b> {name}\n"
                 f"⏳ <b>Validity:</b> {days} Days (Expires: <code>{expiry}</code>)\n"
                 f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
-                "☁️ <b>GitHub Gist:</b> <i>Updated & Cleaned ✅</i>\n"
+                "☁️ <b>Cloud Server:</b> <i>Key Activated ✅</i>\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 "🔑 <b>YOUR VIP KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
                 f"<code>{vip_key}</code>"
             )
             await status_msg.edit_text(receipt_msg, parse_mode="HTML")
         else:
-            await status_msg.edit_text(f"❌ <b>GitHub Gist Update Failed:</b> <code>{err}</code>", parse_mode="HTML")
+            if not is_main:
+                db_add_script_balance(user_id, price) # Refund
+            await status_msg.edit_text(f"❌ <b>Cloud Update Failed:</b> <code>{err}</code>", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ <b>Error:</b> <code>{e}</code>", parse_mode="HTML")
 
 async def cmd_cleangist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     purged = purge_expired_gist_keys()
-    await update.message.reply_text(f"🧹 <b>GitHub Gist Cleaned!</b>\nRemoved <code>{purged}</code> expired keys.", parse_mode="HTML")
+    await update.message.reply_text(f"🧹 <b>Server Database Cleaned!</b>\nRemoved <code>{purged}</code> expired keys.", parse_mode="HTML")
 
 async def cmd_testgist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     if not GITHUB_TOKEN:
-        await update.message.reply_text("❌ GitHub Token is not configured.", parse_mode="HTML")
+        await update.message.reply_text("❌ Server Token is not configured.", parse_mode="HTML")
         return
     headers = get_auth_headers()
     res = requests.get(f"https://api.github.com/gists/{GIST_ID}", headers=headers, timeout=10)
     if res.status_code == 200:
-        await update.message.reply_text("✅ <b>GitHub Gist API Connection Successful!</b>", parse_mode="HTML")
+        await update.message.reply_text("✅ <b>Secure API Connection Successful!</b>", parse_mode="HTML")
     else:
-        await update.message.reply_text(f"❌ <b>GitHub Error ({res.status_code}):</b> {res.text}", parse_mode="HTML")
+        await update.message.reply_text(f"❌ <b>Server Error ({res.status_code}):</b> {res.text}", parse_mode="HTML")
 
 async def cmd_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1558,12 +1633,16 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("addreseller",    cmd_addreseller))
     app.add_handler(CommandHandler("removereseller", cmd_removereseller))
     app.add_handler(CommandHandler("resellers",      cmd_resellers))
+    
+    # NEW SCRIPT ADMIN COMMANDS
     app.add_handler(CommandHandler("addscriptadmin", cmd_addscriptadmin))
     app.add_handler(CommandHandler("removescriptadmin", cmd_removescriptadmin))
     app.add_handler(CommandHandler("scriptadmins",   cmd_scriptadmins))
+    app.add_handler(CommandHandler("addscriptbal",   cmd_addscriptbal))
     
-    app.add_handler(CallbackQueryHandler(button))
+    app.add_handler(MessageHandler(filters.PHOTO,    receive_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_handler(MessageHandler(filters.PHOTO, receive_photo))
-    print("👑 Happy Gamer VIP Telegram Engine Running 24/7 (English & Instant Delivery)...")
+    app.add_handler(CallbackQueryHandler(button))
+
+    print("Bot is starting...")
     app.run_polling()
