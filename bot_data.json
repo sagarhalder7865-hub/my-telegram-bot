@@ -1135,5 +1135,10 @@
       "user_id": 6824314386
     }
   ],
-  "script_balances": []
+  "script_balances": [
+    {
+      "user_id": 6824314386,
+      "amount": 3000
+    }
+  ]
 }
