@@ -49,21 +49,17 @@ class DummyHandler(BaseHTTPRequestHandler):
         </html>
         """
         self.wfile.write(html.encode("utf-8"))
-
     def log_message(self, format, *args):
         return
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
-    try:
-        server = HTTPServer(('0.0.0.0', port), DummyHandler)
-        server.serve_forever()
-    except Exception:
-        pass
+    server = HTTPServer(("0.0.0.0", port), DummyHandler)
+    server.serve_forever()
 
 Thread(target=run_web_server, daemon=True).start()
 
-# SCRIPT KEY PRICING (FOR SCRIPT ADMINS)
+# --- SCRIPT KEY PRICES ---
 SCRIPT_PRICES = {
     1: 20,
     3: 40,
@@ -73,74 +69,98 @@ SCRIPT_PRICES = {
     90: 500
 }
 
-# DEFAULT FRESH INITIAL PRICES
+# --- DEFAULT PRICING CATALOG ---
 DEFAULT_PRICES = {
-    "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",   "reg": 120, "res": 100},
-    "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days",  "reg": 200, "res": 180},
-    "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days",  "reg": 300, "res": 260},
-    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days",  "reg": 500, "res": 490},
-    "aim_30d": {"game": "AIM-AI Carrom", "label": "30 Days",  "reg": 830, "res": 780},
-    "aim_90d": {"game": "AIM-AI Carrom", "label": "90 Days",  "reg": 2100, "res": 2000},
+    # 👑 Shinigami Auto Play
+    "shini_1d": {"game": "Shinigami", "label": "1 Day", "reg": 70, "res": 65},
+    "shini_3d": {"game": "Shinigami", "label": "3 Days", "reg": 160, "res": 150},
+    "shini_7d": {"game": "Shinigami", "label": "7 Days", "reg": 250, "res": 230},
+    "shini_15d": {"game": "Shinigami", "label": "15 Days", "reg": 360, "res": 340},
+    "shini_30d": {"game": "Shinigami", "label": "30 Days", "reg": 560, "res": 530},
 
-    "acn_3d":  {"game": "AIM Carrom Normal", "label": "3 Days",  "reg": 250, "res": 220},
-    "acn_7d":  {"game": "AIM Carrom Normal", "label": "1 Week",  "reg": 360, "res": 330},
-    "acn_30d": {"game": "AIM Carrom Normal", "label": "1 Month", "reg": 1000, "res": 950},
-    "acp_3d":  {"game": "AIM Carrom Premium", "label": "3 Days",  "reg": 310, "res": 280},
-    "acp_7d":  {"game": "AIM Carrom Premium", "label": "1 Week",  "reg": 480, "res": 460},
-    "acp_30d": {"game": "AIM Carrom Premium", "label": "1 Month", "reg": 1250, "res": 1180},
+    # 🍏 Lynx iOS
+    "lynx_ios_1d": {"game": "Lynx iOS", "label": "1 Day", "reg": 320, "res": 300},
+    "lynx_ios_3d": {"game": "Lynx iOS", "label": "3 Days", "reg": 560, "res": 530},
+    "lynx_ios_7d": {"game": "Lynx iOS", "label": "7 Days", "reg": 820, "res": 780},
+    "lynx_ios_15d": {"game": "Lynx iOS", "label": "15 Days", "reg": 1370, "res": 1300},
+    "lynx_ios_30d": {"game": "Lynx iOS", "label": "30 Days", "reg": 2200, "res": 2100},
 
-    "b1":  {"game": "KOS 8 Ball", "label": "1 Day",   "reg": 180, "res": 150},
-    "b7":  {"game": "KOS 8 Ball", "label": "7 Days",  "reg": 500, "res": 450},
-    "b15": {"game": "KOS 8 Ball", "label": "15 Days", "reg": 900, "res": 800},
-    "b30": {"game": "KOS 8 Ball", "label": "30 Days", "reg": 1600, "res": 1400},
-    "c1":  {"game": "KOS Carrom", "label": "1 Day",   "reg": 120, "res": 100},
-    "c7":  {"game": "KOS Carrom", "label": "7 Days",  "reg": 300, "res": 230},
-    "c15": {"game": "KOS Carrom", "label": "15 Days", "reg": 490, "res": 400},
-    "c30": {"game": "KOS Carrom", "label": "30 Days", "reg": 800, "res": 670},
-    "f1":  {"game": "KOS FreeFire Panel", "label": "1 Day",   "reg": 200, "res": 180},
-    "f7":  {"game": "KOS FreeFire Panel", "label": "7 Days",  "reg": 600, "res": 500},
-    "f30": {"game": "KOS FreeFire Panel", "label": "30 Days", "reg": 1800, "res": 1500},
+    # 🤖 Lynx Android
+    "lynx_and_1d": {"game": "Lynx Android", "label": "1 Day", "reg": 140, "res": 130},
+    "lynx_and_3d": {"game": "Lynx Android", "label": "3 Days", "reg": 230, "res": 210},
+    "lynx_and_7d": {"game": "Lynx Android", "label": "7 Days", "reg": 460, "res": 430},
+    "lynx_and_15d": {"game": "Lynx Android", "label": "15 Days", "reg": 560, "res": 530},
+    "lynx_and_30d": {"game": "Lynx Android", "label": "30 Days", "reg": 1200, "res": 1150},
 
-    "bit7":  {"game": "Bitaim", "label": "7 Days",    "reg": 65, "res": 50},
-    "bit30": {"game": "Bitaim", "label": "30 Days",   "reg": 165, "res": 160},
-    "bit90": {"game": "Bitaim", "label": "3 Months",  "reg": 380, "res": 340},
-    "bitlt": {"game": "Bitaim", "label": "Life Time", "reg": 1860, "res": 1790},
+    # 👿 AIM-AI CARROM ENGINE
+    "aim_1d":  {"game": "AIM-AI Carrom", "label": "01 Day",  "reg": 70,   "res": 65},
+    "aim_3d":  {"game": "AIM-AI Carrom", "label": "03 Days", "reg": 140,  "res": 130},
+    "aim_7d":  {"game": "AIM-AI Carrom", "label": "07 Days", "reg": 240,  "res": 220},
+    "aim_15d": {"game": "AIM-AI Carrom", "label": "15 Days", "reg": 360,  "res": 340},
+    "aim_30d": {"game": "AIM-AI Carrom", "label": "30 Days", "reg": 650,  "res": 600},
+    "aim_90d": {"game": "AIM-AI Carrom", "label": "90 Days", "reg": 1700, "res": 1600},
 
-    "snkc_3d":  {"game": "Snake Carrom", "label": "3 Days",  "reg": 190, "res": 160},
-    "snkc_10d": {"game": "Snake Carrom", "label": "10 Days", "reg": 450, "res": 400},
-    "snkc_30d": {"game": "Snake Carrom", "label": "30 Days", "reg": 900, "res": 830},
-    "snk8_3d":  {"game": "Snake 8Ball", "label": "3 Days",  "reg": 320, "res": 290},
-    "snk8_10d": {"game": "Snake 8Ball", "label": "10 Days", "reg": 650, "res": 630},
-    "snk8_30d": {"game": "Snake 8Ball", "label": "30 Days", "reg": 1200, "res": 1150},
+    # 👑 AIM CARROM KING
+    "acn_3d":  {"game": "AIM Normal", "label": "3 Days",  "reg": 100, "res": 80},
+    "acn_7d":  {"game": "AIM Normal", "label": "1 Week",  "reg": 180, "res": 150},
+    "acn_30d": {"game": "AIM Normal", "label": "1 Month", "reg": 490, "res": 420},
+    "acp_3d":  {"game": "AIM Premium", "label": "3 Days", "reg": 120, "res": 100},
+    "acp_7d":  {"game": "AIM Premium", "label": "1 Week", "reg": 200, "res": 170},
+    "acp_30d": {"game": "AIM Premium", "label": "1 Month","reg": 570, "res": 500},
+
+    # 🔥 KOS ENGINE
+    "b1":  {"game": "KOS 8 Ball", "label": "1 Day",   "reg": 120, "res": 100},
+    "b7":  {"game": "KOS 8 Ball", "label": "7 Days",  "reg": 260, "res": 230},
+    "b15": {"game": "KOS 8 Ball", "label": "15 Days", "reg": 480, "res": 420},
+    "b30": {"game": "KOS 8 Ball", "label": "30 Days", "reg": 780, "res": 700},
+
+    "c1":  {"game": "KOS Carrom", "label": "1 Day",   "reg": 100, "res": 90},
+    "c7":  {"game": "KOS Carrom", "label": "7 Days",  "reg": 250, "res": 220},
+    "c15": {"game": "KOS Carrom", "label": "15 Days", "reg": 430, "res": 390},
+    "c30": {"game": "KOS Carrom", "label": "30 Days", "reg": 730, "res": 680},
+
+    "f1":  {"game": "KOS FreeFire", "label": "1 Day",  "reg": 120, "res": 100},
+    "f7":  {"game": "KOS FreeFire", "label": "7 Days", "reg": 300, "res": 260},
+    "f30": {"game": "KOS FreeFire", "label": "30 Days","reg": 830, "res": 750},
+
+    # ⚡ BITAIM
+    "bit7":  {"game": "Bitaim", "label": "7 Days",    "reg": 200,  "res": 170},
+    "bit30": {"game": "Bitaim", "label": "30 Days",   "reg": 500,  "res": 430},
+    "bit90": {"game": "Bitaim", "label": "90 Days",   "reg": 800,  "res": 700},
+    "bitlt": {"game": "Bitaim", "label": "Lifetime",  "reg": 2000, "res": 1700},
+
+    # 🐍 SNAKE ENGINE
+    "snkc_3d":  {"game": "Snake Carrom", "label": "3 Days",  "reg": 200, "res": 170},
+    "snkc_10d": {"game": "Snake Carrom", "label": "10 Days", "reg": 580, "res": 520},
+    "snkc_30d": {"game": "Snake Carrom", "label": "30 Days", "reg": 2100,"res": 1900},
+    "snk8_3d":  {"game": "Snake 8 Ball", "label": "3 Days",  "reg": 200, "res": 170},
+    "snk8_10d": {"game": "Snake 8 Ball", "label": "10 Days", "reg": 560, "res": 500},
+    "snk8_30d": {"game": "Snake 8 Ball", "label": "30 Days", "reg": 2100,"res": 1900}
 }
 
 def get_auth_headers():
-    token = GITHUB_TOKEN.strip() if GITHUB_TOKEN else ""
     return {
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "HappyGamerApp"
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "HappyGamerBot"
     }
 
 def generate_short_key(name="", is_main=True):
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     if is_main:
-        return f"HG{random_chars}"
+        prefix = "HG"
     else:
-        prefix = "".join([c for c in name if c.isalpha()]).upper()
-        if len(prefix) >= 2:
-            prefix = prefix[:2]
-        else:
-            prefix = "SA"
-        return f"{prefix}{random_chars}"
+        clean_name = ''.join(c for c in name if c.isalpha()).upper()
+        prefix = clean_name[:3] if len(clean_name) >= 3 else (clean_name + "VIP")[:3]
+    return f"{prefix}{random_chars}"
 
 def clean_expired_lines(content_text):
-    today_str = datetime.datetime.now().strftime("%Y%m%d")
-    today_int = int(today_str)
+    lines = content_text.splitlines()
+    today_int = int(datetime.datetime.now().strftime("%Y%m%d"))
     cleaned_lines = []
     removed_count = 0
     
-    for line in content_text.splitlines():
+    for line in lines:
         line_clean = line.strip()
         if not line_clean:
             continue
@@ -202,13 +222,13 @@ def append_to_gist(vip_key, device_id, days):
             return True, expiry, None
         else:
             err_details = patch_res.json().get("message", patch_res.text)
-            return False, expiry, f"Status {patch_res.status_code}: {err_details}"
+            return False, None, f"Status {patch_res.status_code}: {err_details}"
     except Exception as e:
         return False, None, str(e)
 
 def purge_expired_gist_keys():
-    if not GITHUB_TOKEN: return 0
     try:
+        if not GITHUB_TOKEN: return 0
         headers = get_auth_headers()
         get_url = f"https://api.github.com/gists/{GIST_ID}"
         get_res = requests.get(get_url, headers=headers, timeout=10)
@@ -227,6 +247,49 @@ def purge_expired_gist_keys():
     except Exception as e:
         return 0
 
+def remove_device_from_gist(device_id):
+    if not GITHUB_TOKEN:
+        return False, 0, "Server Token is not set in Environment!"
+    try:
+        headers = get_auth_headers()
+        get_url = f"https://api.github.com/gists/{GIST_ID}"
+        get_res = requests.get(get_url, headers=headers, timeout=10)
+        current_content = ""
+        if get_res.status_code == 200:
+            files_data = get_res.json().get("files", {})
+            if FILE_NAME in files_data:
+                current_content = files_data[FILE_NAME].get("content", "")
+        else:
+            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{GIST_ID}/raw/{FILE_NAME}?t={int(time.time())}"
+            raw_res = requests.get(raw_url, timeout=10)
+            if raw_res.status_code == 200:
+                current_content = raw_res.text
+
+        lines = current_content.splitlines()
+        new_lines = []
+        removed_count = 0
+        for line in lines:
+            if line.strip() and device_id in line:
+                removed_count += 1
+            else:
+                if line.strip():
+                    new_lines.append(line.strip())
+
+        if removed_count == 0:
+            return False, 0, "Device ID not found in active cloud keys!"
+
+        updated_content = "\n".join(new_lines)
+        patch_payload = {"files": {FILE_NAME: {"content": updated_content}}}
+        patch_res = requests.patch(get_url, headers=headers, json=patch_payload, timeout=10)
+        if patch_res.status_code in [200, 201]:
+            return True, removed_count, None
+        else:
+            err_details = patch_res.json().get("message", patch_res.text)
+            return False, removed_count, f"Status {patch_res.status_code}: {err_details}"
+    except Exception as e:
+        return False, 0, str(e)
+
+# --- ASYNC NON-BLOCKING GITHUB SYNC ENGINE ---
 def push_data_to_github_bg():
     Thread(target=push_data_to_github, daemon=True).start()
 
@@ -237,263 +300,255 @@ def push_data_to_github():
         content_str = json.dumps(data_dump, indent=2)
         content_b64 = base64.b64encode(content_str.encode("utf-8")).decode("utf-8")
         
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
         headers = get_auth_headers()
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
         
-        sha = None
         get_res = requests.get(url, headers=headers, timeout=8)
+        payload = {
+            "message": f"Cloud Sync: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            "content": content_b64
+        }
         if get_res.status_code == 200:
-            sha = get_res.json().get("sha")
-            
-        payload = {"message": "[skip ci] Auto-sync VIP bot data", "content": content_b64}
-        if sha: payload["sha"] = sha
+            payload["sha"] = get_res.json().get("sha")
             
         requests.put(url, headers=headers, json=payload, timeout=8)
-    except Exception as e:
+    except Exception:
         pass
 
 def pull_data_from_github():
     if not GITHUB_TOKEN or not GITHUB_REPO: return None
     try:
-        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
         headers = get_auth_headers()
-        res = requests.get(url, headers=headers, timeout=8)
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DATA_FILE}"
+        res = requests.get(url, headers=headers, timeout=10)
         if res.status_code == 200:
             content_b64 = res.json().get("content", "")
-            return json.loads(base64.b64decode(content_b64).decode("utf-8"))
-    except Exception as e:
+            content_str = base64.b64decode(content_b64).decode("utf-8")
+            return json.loads(content_str)
+    except Exception:
         pass
     return None
 
 def export_database_json():
     with get_db() as db:
         users = [dict(r) for r in db.execute("SELECT * FROM users").fetchall()]
-        balances = [dict(r) for r in db.execute("SELECT * FROM balances").fetchall()]
         keys = [dict(r) for r in db.execute("SELECT * FROM keys").fetchall()]
+        orders = [dict(r) for r in db.execute("SELECT * FROM order_history").fetchall()]
         resellers = [dict(r) for r in db.execute("SELECT * FROM resellers").fetchall()]
         prices = [dict(r) for r in db.execute("SELECT * FROM prices").fetchall()]
-        orders = [dict(r) for r in db.execute("SELECT * FROM order_history").fetchall()]
-        referrals = [dict(r) for r in db.execute("SELECT * FROM referrals").fetchall()]
-        banned = [dict(r) for r in db.execute("SELECT * FROM banned_users").fetchall()]
         script_admins = [dict(r) for r in db.execute("SELECT * FROM script_admins").fetchall()]
-        script_balances = [dict(r) for r in db.execute("SELECT * FROM script_balances").fetchall()]
-    return {
-        "users": users, "balances": balances, "keys": keys,
-        "resellers": resellers, "prices": prices, "order_history": orders,
-        "referrals": referrals, "banned_users": banned, "script_admins": script_admins,
-        "script_balances": script_balances
-    }
+        return {
+            "users": users, "keys": keys, "orders": orders,
+            "resellers": resellers, "prices": prices, "script_admins": script_admins
+        }
 
+# --- DATABASE SETUP ---
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=15)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db(force_fresh=False):
-    with get_db() as db:
-        if force_fresh:
-            db.executescript("""
-                DROP TABLE IF EXISTS users;
-                DROP TABLE IF EXISTS balances;
-                DROP TABLE IF EXISTS keys;
-                DROP TABLE IF EXISTS resellers;
-                DROP TABLE IF EXISTS prices;
-                DROP TABLE IF EXISTS order_history;
-                DROP TABLE IF EXISTS banned_users;
-                DROP TABLE IF EXISTS referrals;
-                DROP TABLE IF EXISTS script_admins;
-                DROP TABLE IF EXISTS script_balances;
-            """)
+    if force_fresh and os.path.exists(DB_PATH):
+        try: os.remove(DB_PATH)
+        except Exception: pass
 
-        db.executescript("""
+    with get_db() as db:
+        db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
                 first_name TEXT,
                 username TEXT,
-                referred_by INTEGER DEFAULT 0,
-                joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS balances (
+                balance INTEGER DEFAULT 0,
+                script_balance INTEGER DEFAULT 0,
+                is_banned INTEGER DEFAULT 0,
+                referrer_id INTEGER DEFAULT 0,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try:
+            db.execute("ALTER TABLE users ADD COLUMN script_balance INTEGER DEFAULT 0")
+        except Exception: pass
+        
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS script_admins (
                 user_id INTEGER PRIMARY KEY,
-                amount  INTEGER NOT NULL DEFAULT 0
-            );
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        db.execute("""
             CREATE TABLE IF NOT EXISTS keys (
-                id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                plan    TEXT NOT NULL,
-                key     TEXT NOT NULL UNIQUE
-            );
-            CREATE TABLE IF NOT EXISTS resellers (
-                user_id INTEGER PRIMARY KEY
-            );
-            CREATE TABLE IF NOT EXISTS prices (
-                plan     TEXT PRIMARY KEY,
-                game     TEXT NOT NULL,
-                label    TEXT NOT NULL,
-                regular  INTEGER NOT NULL,
-                reseller INTEGER NOT NULL
-            );
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan TEXT,
+                key_code TEXT UNIQUE,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        db.execute("""
             CREATE TABLE IF NOT EXISTS order_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                game TEXT NOT NULL,
-                plan_label TEXT NOT NULL,
-                price INTEGER NOT NULL,
-                key_delivered TEXT NOT NULL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS banned_users (
-                user_id INTEGER PRIMARY KEY,
-                reason TEXT,
-                banned_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS referrals (
-                referred_user INTEGER PRIMARY KEY,
-                referrer_id INTEGER,
-                reward_paid INTEGER DEFAULT 1,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS script_admins (
-                user_id INTEGER PRIMARY KEY
-            );
-            CREATE TABLE IF NOT EXISTS script_balances (
-                user_id INTEGER PRIMARY KEY,
-                amount  INTEGER NOT NULL DEFAULT 0
-            );
+                user_id INTEGER,
+                game TEXT,
+                plan_label TEXT,
+                price INTEGER,
+                key_delivered TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
         """)
-        
-        for pcode, pdata in DEFAULT_PRICES.items():
-            db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
-                       (pcode, pdata["game"], pdata["label"], pdata["reg"], pdata["res"]))
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS resellers (
+                user_id INTEGER PRIMARY KEY
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS prices (
+                plan_id TEXT PRIMARY KEY,
+                game TEXT,
+                label TEXT,
+                regular INTEGER,
+                reseller INTEGER
+            )
+        """)
 
-        if not force_fresh:
-            gh_data = pull_data_from_github()
-            if gh_data:
+        # Sync Default Prices
+        for plan_id, d in DEFAULT_PRICES.items():
+            db.execute(
+                "INSERT INTO prices (plan_id, game, label, regular, reseller) VALUES (?,?,?,?,?) "
+                "ON CONFLICT(plan_id) DO UPDATE SET regular=excluded.regular, reseller=excluded.reseller",
+                (plan_id, d["game"], d["label"], d["reg"], d["res"])
+            )
+
+    if not force_fresh:
+        gh_data = pull_data_from_github()
+        if gh_data:
+            with get_db() as db:
                 for u in gh_data.get("users", []):
-                    db.execute("INSERT OR REPLACE INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)", 
-                               (u["user_id"], u.get("first_name",""), u.get("username",""), u.get("referred_by", 0)))
-                for b in gh_data.get("balances", []):
-                    db.execute("INSERT OR REPLACE INTO balances (user_id, amount) VALUES (?,?)", (b["user_id"], b["amount"]))
-                for k in gh_data.get("keys", []):
-                    db.execute("INSERT OR REPLACE INTO keys (id, plan, key) VALUES (?,?,?)", (k["id"], k["plan"], k["key"]))
-                for r in gh_data.get("resellers", []):
-                    db.execute("INSERT OR REPLACE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
-                for p in gh_data.get("prices", []):
-                    db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
-                               (p["plan"], p["game"], p["label"], p["regular"], p["reseller"]))
-                for ban in gh_data.get("banned_users", []):
-                    db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (ban["user_id"], ban.get("reason", "Admin Ban")))
-                for ref in gh_data.get("referrals", []):
-                    db.execute("INSERT OR REPLACE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,?)", (ref["referred_user"], ref["referrer_id"], ref.get("reward_paid", 1)))
-                for o in gh_data.get("order_history", []):
-                    db.execute("INSERT OR IGNORE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
-                               (o.get("id"), o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o.get("timestamp")))
+                    db.execute(
+                        "INSERT OR REPLACE INTO users (user_id, first_name, username, balance, script_balance, is_banned, referrer_id, joined_at) "
+                        "VALUES (?,?,?,?,?,?,?,?)",
+                        (u["user_id"], u.get("first_name",""), u.get("username",""), u.get("balance",0), u.get("script_balance",0), u.get("is_banned",0), u.get("referrer_id",0), u.get("joined_at",""))
+                    )
                 for sa in gh_data.get("script_admins", []):
-                    db.execute("INSERT OR REPLACE INTO script_admins (user_id) VALUES (?)", (sa["user_id"],))
-                for sb in gh_data.get("script_balances", []):
-                    db.execute("INSERT OR REPLACE INTO script_balances (user_id, amount) VALUES (?,?)", (sb["user_id"], sb["amount"]))
+                    db.execute("INSERT OR IGNORE INTO script_admins (user_id) VALUES (?)", (sa["user_id"],))
+                for k in gh_data.get("keys", []):
+                    db.execute("INSERT OR IGNORE INTO keys (plan, key_code) VALUES (?,?)", (k["plan"], k["key_code"]))
+                for r in gh_data.get("resellers", []):
+                    db.execute("INSERT OR IGNORE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
+                for o in gh_data.get("orders", []):
+                    db.execute(
+                        "INSERT OR IGNORE INTO order_history (id, user_id, game, plan_label, price, key_delivered, timestamp) VALUES (?,?,?,?,?,?,?)",
+                        (o["id"], o["user_id"], o["game"], o["plan_label"], o["price"], o["key_delivered"], o["timestamp"])
+                    )
 
+init_db()
+
+# Database Helper Methods
 def db_is_banned(user_id):
     with get_db() as db:
-        return db.execute("SELECT 1 FROM banned_users WHERE user_id=?", (user_id,)).fetchone() is not None
+        r = db.execute("SELECT is_banned FROM users WHERE user_id=?", (user_id,)).fetchone()
+        return bool(r and r["is_banned"])
 
 def db_ban_user(user_id, reason="Blacklisted"):
     with get_db() as db:
-        db.execute("INSERT OR REPLACE INTO banned_users (user_id, reason) VALUES (?,?)", (user_id, reason))
+        db.execute("UPDATE users SET is_banned=1 WHERE user_id=?", (user_id,))
     push_data_to_github_bg()
 
 def db_unban_user(user_id):
     with get_db() as db:
-        db.execute("DELETE FROM banned_users WHERE user_id=?", (user_id,))
+        db.execute("UPDATE users SET is_banned=0 WHERE user_id=?", (user_id,))
     push_data_to_github_bg()
 
 def db_register_user(user_id, first_name, username, referrer_id=0):
     with get_db() as db:
-        existing = db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,)).fetchone()
-        if not existing:
+        row = db.execute("SELECT user_id, referrer_id FROM users WHERE user_id=?", (user_id,)).fetchone()
+        if not row:
+            ref_giver = None
+            if referrer_id and referrer_id != user_id:
+                chk = db.execute("SELECT user_id FROM users WHERE user_id=?", (referrer_id,)).fetchone()
+                if chk:
+                    ref_giver = referrer_id
+                    db.execute("UPDATE users SET balance = balance + 1 WHERE user_id=?", (referrer_id,))
             db.execute(
-                "INSERT INTO users (user_id, first_name, username, referred_by) VALUES (?,?,?,?)",
-                (user_id, first_name, username, referrer_id)
+                "INSERT INTO users (user_id, first_name, username, balance, referrer_id) VALUES (?,?,?,?,?)",
+                (user_id, first_name, username, 0, ref_giver or 0)
             )
-            if referrer_id > 0 and referrer_id != user_id:
-                db_add_balance(referrer_id, 1)
-                db.execute("INSERT OR IGNORE INTO referrals (referred_user, referrer_id, reward_paid) VALUES (?,?,1)", (user_id, referrer_id))
-                push_data_to_github_bg()
-                return referrer_id
+            push_data_to_github_bg()
+            return ref_giver
         else:
-            db.execute(
-                "UPDATE users SET first_name=?, username=? WHERE user_id=?",
-                (first_name, username, user_id)
-            )
-    push_data_to_github_bg()
+            db.execute("UPDATE users SET first_name=?, username=? WHERE user_id=?", (first_name, username, user_id))
     return None
 
 def db_get_referral_count(user_id):
     with get_db() as db:
-        row = db.execute("SELECT COUNT(*) FROM referrals WHERE referrer_id=?", (user_id,)).fetchone()
-        return row[0] if row else 0
+        r = db.execute("SELECT COUNT(*) as c FROM users WHERE referrer_id=?", (user_id,)).fetchone()
+        return r["c"] if r else 0
 
 def db_get_all_users():
     with get_db() as db:
-        rows = db.execute("SELECT DISTINCT user_id FROM users UNION SELECT DISTINCT user_id FROM balances UNION SELECT DISTINCT user_id FROM order_history").fetchall()
-        return [r["user_id"] for r in rows]
+        return [r["user_id"] for r in db.execute("SELECT user_id FROM users").fetchall()]
 
 def db_get_balance(user_id):
     with get_db() as db:
-        row = db.execute("SELECT amount FROM balances WHERE user_id=?", (user_id,)).fetchone()
-    return row["amount"] if row else 0
+        r = db.execute("SELECT balance FROM users WHERE user_id=?", (user_id,)).fetchone()
+        return r["balance"] if r else 0
 
 def db_set_balance(user_id, amount):
     with get_db() as db:
         db.execute(
-            "INSERT INTO balances (user_id,amount) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET amount=?",
-            (user_id, amount, amount)
+            "INSERT INTO users (user_id, balance) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET balance = excluded.balance",
+            (user_id, amount)
         )
     push_data_to_github_bg()
 
 def db_add_balance(user_id, delta):
-    cur = db_get_balance(user_id)
-    db_set_balance(user_id, cur + delta)
-    return cur + delta
+    with get_db() as db:
+        db.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (delta, user_id))
+        r = db.execute("SELECT balance FROM users WHERE user_id=?", (user_id,)).fetchone()
+    push_data_to_github_bg()
+    return r["balance"] if r else 0
 
 def db_get_script_balance(user_id):
     with get_db() as db:
-        row = db.execute("SELECT amount FROM script_balances WHERE user_id=?", (user_id,)).fetchone()
-    return row["amount"] if row else 0
+        r = db.execute("SELECT script_balance FROM users WHERE user_id=?", (user_id,)).fetchone()
+        return r["script_balance"] if r and r["script_balance"] is not None else 0
 
 def db_set_script_balance(user_id, amount):
     with get_db() as db:
         db.execute(
-            "INSERT INTO script_balances (user_id,amount) VALUES (?,?) ON CONFLICT(user_id) DO UPDATE SET amount=?",
-            (user_id, amount, amount)
+            "INSERT INTO users (user_id, script_balance) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET script_balance = excluded.script_balance",
+            (user_id, amount)
         )
     push_data_to_github_bg()
 
 def db_add_script_balance(user_id, delta):
-    cur = db_get_script_balance(user_id)
-    db_set_script_balance(user_id, cur + delta)
-    return cur + delta
+    with get_db() as db:
+        db.execute("UPDATE users SET script_balance = COALESCE(script_balance, 0) + ? WHERE user_id=?", (delta, user_id))
+        r = db.execute("SELECT script_balance FROM users WHERE user_id=?", (user_id,)).fetchone()
+    push_data_to_github_bg()
+    return r["script_balance"] if r else 0
 
 def db_count_keys(plan):
     with get_db() as db:
-        return db.execute("SELECT COUNT(*) FROM keys WHERE plan=?", (plan,)).fetchone()[0]
+        r = db.execute("SELECT COUNT(*) as c FROM keys WHERE plan=?", (plan,)).fetchone()
+        return r["c"] if r else 0
 
 def db_add_key(plan, key):
     with get_db() as db:
-        db.execute("INSERT OR IGNORE INTO keys (plan,key) VALUES (?,?)", (plan, key))
+        db.execute("INSERT OR IGNORE INTO keys (plan, key_code) VALUES (?,?)", (plan, key.strip()))
     push_data_to_github_bg()
 
 def db_pop_key(plan):
     with get_db() as db:
-        row = db.execute("SELECT id,key FROM keys WHERE plan=? ORDER BY id LIMIT 1", (plan,)).fetchone()
-        if row:
-            db.execute("DELETE FROM keys WHERE id=?", (row["id"],))
+        r = db.execute("SELECT id, key_code FROM keys WHERE plan=? LIMIT 1", (plan,)).fetchone()
+        if r:
+            db.execute("DELETE FROM keys WHERE id=?", (r["id"],))
             push_data_to_github_bg()
-            return row["key"]
+            return r["key_code"]
     return None
 
 def db_is_reseller(user_id):
     with get_db() as db:
-        return db.execute("SELECT 1 FROM resellers WHERE user_id=?", (user_id,)).fetchone() is not None
+        return bool(db.execute("SELECT 1 FROM resellers WHERE user_id=?", (user_id,)).fetchone())
 
 def db_add_reseller(user_id):
     with get_db() as db:
@@ -511,7 +566,7 @@ def db_all_resellers():
 
 def db_is_script_admin(user_id):
     with get_db() as db:
-        return db.execute("SELECT 1 FROM script_admins WHERE user_id=?", (user_id,)).fetchone() is not None
+        return bool(db.execute("SELECT 1 FROM script_admins WHERE user_id=?", (user_id,)).fetchone())
 
 def db_add_script_admin(user_id):
     with get_db() as db:
@@ -529,24 +584,22 @@ def db_all_script_admins():
 
 def db_get_plan(plan_id):
     with get_db() as db:
-        row = db.execute("SELECT * FROM prices WHERE plan=?", (plan_id,)).fetchone()
-        if row:
-            return dict(row)
-    if plan_id in DEFAULT_PRICES:
-        item = DEFAULT_PRICES[plan_id]
-        return {"plan": plan_id, "game": item["game"], "label": item["label"], "regular": item["reg"], "reseller": item["res"]}
+        r = db.execute("SELECT * FROM prices WHERE plan_id=?", (plan_id,)).fetchone()
+        if r: return dict(r)
+        if plan_id in DEFAULT_PRICES:
+            p = DEFAULT_PRICES[plan_id]
+            return {"plan_id": plan_id, "game": p["game"], "label": p["label"], "regular": p["reg"], "reseller": p["res"]}
     return None
 
 def db_set_price(plan_id, regular, reseller):
     with get_db() as db:
-        row = db.execute("SELECT game, label FROM prices WHERE plan=?", (plan_id,)).fetchone()
-        if row:
-            db.execute("UPDATE prices SET regular=?, reseller=? WHERE plan=?", (regular, reseller, plan_id))
-        else:
-            gname = DEFAULT_PRICES.get(plan_id, {}).get("game", plan_id)
-            glabel = DEFAULT_PRICES.get(plan_id, {}).get("label", plan_id)
-            db.execute("INSERT OR REPLACE INTO prices (plan, game, label, regular, reseller) VALUES (?,?,?,?,?)",
-                       (plan_id, gname, glabel, regular, reseller))
+        r = db.execute("SELECT game, label FROM prices WHERE plan_id=?", (plan_id,)).fetchone()
+        if r:
+            db.execute("UPDATE prices SET regular=?, reseller=? WHERE plan_id=?", (regular, reseller, plan_id))
+        elif plan_id in DEFAULT_PRICES:
+            p = DEFAULT_PRICES[plan_id]
+            db.execute("INSERT INTO prices (plan_id, game, label, regular, reseller) VALUES (?,?,?,?,?)",
+                       (plan_id, p["game"], p["label"], regular, reseller))
     push_data_to_github_bg()
 
 def db_record_order(user_id, game, plan_label, price, key_delivered):
@@ -573,15 +626,33 @@ def get_price(user_id, plan_id):
     plan = db_get_plan(plan_id)
     if plan:
         return plan["reseller"] if is_res else plan["regular"]
-    return 0
+    return 0# (Paste Part 1 above this)
 
 def stock_text():
     lines = [
         "╔═══════════════════════════╗",
         "║  📦 <b>LIVE WAREHOUSE INVENTORY</b>  ║",
         "╚═══════════════════════════╝",
-        "\n👿 <b>AIM-AI CARROM ENGINE:</b>"
+        "\n👑 <b>SHINIGAMI AUTO PLAY:</b>"
     ]
+    for p in ["shini_1d", "shini_3d", "shini_7d", "shini_15d", "shini_30d"]:
+        pl = db_get_plan(p)
+        label = pl["label"] if pl else p
+        lines.append(f"  🔥 <code>{label:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+
+    lines.append("\n🍏 <b>LYNX AUTO PLAY (iOS):</b>")
+    for p in ["lynx_ios_1d", "lynx_ios_3d", "lynx_ios_7d", "lynx_ios_15d", "lynx_ios_30d"]:
+        pl = db_get_plan(p)
+        label = pl["label"] if pl else p
+        lines.append(f"  🍏 <code>{label:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+
+    lines.append("\n🤖 <b>LYNX AUTO PLAY (Android):</b>")
+    for p in ["lynx_and_1d", "lynx_and_3d", "lynx_and_7d", "lynx_and_15d", "lynx_and_30d"]:
+        pl = db_get_plan(p)
+        label = pl["label"] if pl else p
+        lines.append(f"  🤖 <code>{label:8}</code> [<code>{p}</code>] ➜ <b>{db_count_keys(p)} Pcs</b>")
+
+    lines.append("\n👿 <b>AIM-AI CARROM ENGINE:</b>")
     for p in ["aim_1d", "aim_3d", "aim_7d", "aim_15d", "aim_30d", "aim_90d"]:
         pl = db_get_plan(p)
         label = pl["label"] if pl else p
@@ -619,8 +690,26 @@ def price_list_text():
         "╔═══════════════════════════╗",
         "║  💎 <b>OFFICIAL VIP PRICE CATALOG</b> ║",
         "╚═══════════════════════════╝",
-        "\n👿 <b>AIM-AI ENGINE (CARROM POOL):</b>"
+        "\n👑 <b>SHINIGAMI AUTO PLAY:</b>"
     ]
+    for p in ["shini_1d", "shini_3d", "shini_7d", "shini_15d", "shini_30d"]:
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  👑 <b>{item['label']:8}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
+
+    lines.append("\n🍏 <b>LYNX AUTO PLAY (iOS):</b>")
+    for p in ["lynx_ios_1d", "lynx_ios_3d", "lynx_ios_7d", "lynx_ios_15d", "lynx_ios_30d"]:
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  🍏 <b>{item['label']:8}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
+
+    lines.append("\n🤖 <b>LYNX AUTO PLAY (Android):</b>")
+    for p in ["lynx_and_1d", "lynx_and_3d", "lynx_and_7d", "lynx_and_15d", "lynx_and_30d"]:
+        item = db_get_plan(p)
+        if item:
+            lines.append(f"  🤖 <b>{item['label']:8}</b> <code>[{p}]</code> ➜ <code>₹{item['regular']}</code> <i>[VIP: ₹{item['reseller']}]</i>")
+
+    lines.append("\n👿 <b>AIM-AI ENGINE (CARROM POOL):</b>")
     for p in ["aim_1d", "aim_3d", "aim_7d", "aim_15d", "aim_30d", "aim_90d"]:
         item = db_get_plan(p)
         if item:
@@ -671,6 +760,8 @@ def get_main_dashboard(uid, name):
     last_buy = db_get_last_purchase(uid)
 
     inline_kbd = [
+        [InlineKeyboardButton("👑 Shinigami Auto play 🔥", callback_data="shini_menu")],
+        [InlineKeyboardButton("🔥 Lynx Engine Auto play 🔥", callback_data="lynx_menu")],
         [InlineKeyboardButton("👿 AIM-AI CARROM ENGINE 🔥", callback_data="aim_ai_menu")],
         [InlineKeyboardButton("👑 AIM CARROM KING", callback_data="aim_menu")],
         [InlineKeyboardButton("🔥 KOS Engine Keys", callback_data="kos_menu"), InlineKeyboardButton("⚡ Bitaim Hack", callback_data="bitaim_menu")],
@@ -692,12 +783,12 @@ def get_main_dashboard(uid, name):
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"👤 <b>Client:</b> <code>{name}</code>\n"
         f"💰 <b>Wallet Balance:</b> <code>₹{bal}.00</code> 💳\n"
-        f"🛡️ <b>Account Tier:</b> <b>{role}</b>\n"
-        f"📦 <b>Recent Purchase:</b> <i>{last_buy}</i>\n"
+        f"🛡️ <b>Account Rank:</b> {role}\n"
+        f"🎮 <b>Last Purchased:</b> <i>{last_buy}</i>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "📖 <b>Instant Buying Guide:</b>\n"
-        "1️⃣ Tap <b>Add Balance</b> and scan QR code to add funds.\n"
-        "2️⃣ Tap <b>Referral & Earn</b> to invite friends and earn free balance!\n"
+        "⚡ <b>Fast Automatic Key Delivery Guaranteed</b>\n"
+        "1️⃣ Click <b>💳 Add Balance</b> to top up via Official UPI\n"
+        "2️⃣ Send payment screenshot for instant credit\n"
         "3️⃣ Select your desired <b>VIP Hack Engine</b> to receive instant key!"
     )
     return msg, InlineKeyboardMarkup(inline_kbd)
@@ -769,7 +860,7 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
     task = asyncio.create_task(expire_payment(user_id, context))
     payment_requests[user_id] = {"task": task}
 
-    amounts = [100, 120, 180, 200, 260, 300, 490, 500, 560, 570, 580, 780, 830, 2000, 2100, 50, 65, 150, 160, 165, 190, 220, 250, 280, 310, 320, 360, 380, 450, 480, 600, 650, 800, 900, 1000, 1200, 1250, 1600, 1800]
+    amounts = [50, 70, 100, 140, 160, 200, 230, 240, 250, 320, 360, 430, 460, 560, 650, 730, 820, 1000, 1200, 1370, 1700, 2200]
     row, kbd = [], []
     for amt in amounts:
         row.append(InlineKeyboardButton(f"₹{amt}", callback_data=f"pay_{user_id}_{amt}"))
@@ -789,61 +880,46 @@ async def handle_direct_payment(update: Update, context: ContextTypes.DEFAULT_TY
                         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                         f"👤 <b>User:</b> {name} (@{username})\n"
                         f"🆔 <b>ID:</b> <code>{user_id}</code> | {role_lbl}\n"
-                        f"💳 <b>Current Bal:</b> ₹{db_get_balance(user_id)}\n\n"
-                        "👇 <i>Select amount to credit:</i>"
+                        f"💰 Current Balance: <code>₹{db_get_balance(user_id)}</code>\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        "👇 <b>Select approved amount to credit:</b>"
                     ),
-                    parse_mode="HTML",
-                    reply_markup=InlineKeyboardMarkup(kbd)
+                    reply_markup=InlineKeyboardMarkup(kbd),
+                    parse_mode="HTML"
                 )
             except Exception: pass
     else:
-        utr_text = update.message.text.strip()
-        await update.message.reply_text(f"✅ <b>UTR / Ref No:</b> <code>{utr_text}</code> received!\n⏳ Admin is verifying within 5 minutes...", parse_mode="HTML")
-        for admin_id in ADMINS:
-            try:
-                await context.bot.send_message(
-                    chat_id=admin_id,
-                    text=(
-                        "🔔 <b>NEW PAYMENT UTR / REF NUMBER RECEIVED</b>\n"
-                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        f"👤 <b>User:</b> {name} (@{username})\n"
-                        f"🆔 <b>ID:</b> <code>{user_id}</code> | {role_lbl}\n"
-                        f"💳 <b>Current Bal:</b> ₹{db_get_balance(user_id)}\n"
-                        f"🛡️ <b>UTR / Ref No:</b> <code>{utr_text}</code>\n\n"
-                        "👇 <i>Select amount to credit:</i>"
-                    ),
-                    parse_mode="HTML",
-                    reply_markup=InlineKeyboardMarkup(kbd)
-                )
-            except Exception: pass
+        if os.path.exists(QR_PATH):
+            with open(QR_PATH, "rb") as f:
+                await update.message.reply_photo(photo=f, caption=get_payment_caption(), parse_mode="HTML")
+        else:
+            await update.message.reply_text(get_payment_caption(), parse_mode="HTML")
 
 async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await handle_direct_payment(update, context, is_photo=True)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text    = update.message.text
+    text = (update.message.text or "").strip()
     user_id = update.effective_user.id
-    name    = update.effective_user.first_name
-    username = update.effective_user.username or ""
+    name = update.effective_user.first_name
 
-    if db_is_banned(user_id): return
-
-    db_register_user(user_id, name, username)
-
-    if (user_id in ADMINS or db_is_script_admin(user_id)) and "script_gen_days" in context.user_data:
+    # Script Key Device ID generation input handler
+    if context.user_data.get("script_gen_days"):
         days = context.user_data.pop("script_gen_days")
-        device_id = text.strip()
-        
-        is_main = user_id in ADMINS
+        device_id = text
+        is_main = (user_id in ADMINS)
         
         if not is_main:
-            price = SCRIPT_PRICES.get(days, 0)
+            price = SCRIPT_PRICES.get(days)
+            if price is None:
+                await update.message.reply_text("❌ <b>Invalid Days Selected!</b>", parse_mode="HTML")
+                return
             s_bal = db_get_script_balance(user_id)
             if s_bal < price:
                 await update.message.reply_text(f"❌ <b>INSUFFICIENT SCRIPT BALANCE!</b>\nRequired: ₹{price}\nYour Balance: ₹{s_bal}", parse_mode="HTML")
                 return
             db_add_script_balance(user_id, -price)
-        
+
         vip_key = generate_short_key(name, is_main)
         status_msg = await update.message.reply_text("⏳ <i>Connecting to Secure Cloud Server & Generating Key...</i>", parse_mode="HTML")
         success, expiry, err = append_to_gist(vip_key, device_id, days)
@@ -869,140 +945,129 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if user_id in awaiting_gmail:
-        plan_id = awaiting_gmail.pop(user_id)
-        plan    = db_get_plan(plan_id)
-        price   = get_price(user_id, plan_id)
-        bal     = db_get_balance(user_id)
-
-        if "@" not in text or "." not in text:
-            await update.message.reply_text("❌ <b>INVALID GMAIL ADDRESS!</b>\nPlease provide a valid Google Play email.", parse_mode="HTML")
-            awaiting_gmail[user_id] = plan_id
-            return
-
-        new_bal = bal - price
-        db_set_balance(user_id, new_bal)
-        gname = plan['game'] if plan else "Bitaim"
-        glabel = plan['label'] if plan else plan_id
-        db_record_order(user_id, gname, glabel, price, f"Gmail: {text}")
-
-        success_msg = (
-            "╔═══════════════════════════╗\n"
-            "║  🎉 <b>BITAIM ORDER CONFIRMED</b>  ║\n"
-            "╚═══════════════════════════╝\n"
-            f"🎮 <b>Item:</b> {gname} ({glabel})\n"
-            f"💰 <b>Charged:</b> ₹{price}\n"
-            f"📧 <b>Account Gmail:</b> <code>{text}</code>\n"
-            f"💳 <b>Remaining Balance:</b> ₹{new_bal}\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "⚡ <i>Admin has been notified. Activation inside 10 minutes!</i>"
+        del awaiting_gmail[user_id]
+        await update.message.reply_text(
+            f"✅ <b>Reseller Application Submitted!</b>\nAdmin will review your email (<code>{text}</code>) shortly.",
+            parse_mode="HTML"
         )
-        await update.message.reply_text(success_msg, parse_mode="HTML")
-
         for admin_id in ADMINS:
             try:
                 await context.bot.send_message(
                     chat_id=admin_id,
-                    text=f"🚨 <b>NEW BITAIM ORDER!</b>\n👤 Client: {user_id} ({name})\n🎮 Plan: {gname} ({glabel})\n💰 Price: ₹{price}\n📧 Gmail: <code>{text}</code>",
+                    text=f"👑 <b>NEW RESELLER APPLICATION</b>\nUser: {name} (<code>{user_id}</code>)\nEmail: <code>{text}</code>",
                     parse_mode="HTML"
                 )
             except Exception: pass
         return
 
-    clean_num = text.strip().replace(" ", "")
-    if len(clean_num) >= 8 and clean_num.isdigit():
-        await handle_direct_payment(update, context, is_photo=False)
-        return
-
-    if text in ["/start", "🔑 All Hack Key buy"]:
+    if text in ["🔑 All Hack Key buy", "/buy", "Buy Key 🔑"]:
         msg, inline_markup = get_main_dashboard(user_id, name)
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=inline_markup)
-
-    elif text in ["Check Balance 💰", "💰 Balance", "/balance"]:
+        await update.message.reply_text("👇 <b>Select your VIP Hack to Proceed:</b>", parse_mode="HTML", reply_markup=inline_markup)
+    elif text in ["Check Balance 💰", "/balance", "Balance 💰"]:
         bal = db_get_balance(user_id)
-        role = " [👑 VIP Reseller]" if db_is_reseller(user_id) else " [Customer]"
-        await update.message.reply_text(f"💳 <b>Your Wallet Balance:</b> <code>₹{bal}.00</code>\n🏷️ <b>Status:</b> <b>{role}</b>", parse_mode="HTML")
-
+        is_res = "👑 VIP Reseller" if db_is_reseller(user_id) else "👤 Regular Customer"
+        kbd = [
+            [InlineKeyboardButton("➕ Add Balance", callback_data="add_bal")],
+            [InlineKeyboardButton("📜 Order History", callback_data="orders_hist")]
+        ]
+        await update.message.reply_text(
+            f"╔═══════════════════════════╗\n"
+            f"║    💰 <b>YOUR WALLET BALANCE</b>    ║\n"
+            f"╚═══════════════════════════╝\n\n"
+            f"👤 <b>Account:</b> {name}\n"
+            f"💵 <b>Current Balance:</b> <code>₹{bal}.00</code> 💳\n"
+            f"🎖️ <b>Account Rank:</b> {is_res}\n\n"
+            f"⚡ <i>Instant deduction on automated key purchases!</i>",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(kbd)
+        )
+    elif text in ["➕Add Balance 💰", "Add Balance 💳", "/addbal"]:
+        await handle_direct_payment(update, context, is_photo=False)
+    elif text in ["📦 Stock", "/stock"]:
+        await update.message.reply_text(stock_text(), parse_mode="HTML")
+    elif text in ["📞 Admin Help", "Admin Help 📞", "/help"]:
+        await update.message.reply_text(
+            f"╔═══════════════════════════╗\n"
+            f"║      📞 <b>CUSTOMER SUPPORT</b>     ║\n"
+            f"╚═══════════════════════════╝\n\n"
+            f"For instant VIP assistance, inquiries, or custom reseller quotas:\n\n"
+            f"👉 <b>Official Admin:</b> {ADMIN_USERNAME}\n"
+            f"⚡ Active Time: 10:00 AM - 12:00 AM IST",
+            parse_mode="HTML"
+        )
     elif text in ["🎁 Referral & Earn 💰", "/referral", "/ref"]:
         await send_referral_panel(update, context, user_id)
-
-    elif text in ["➕Add Balance 💰", "➕ Add Balance"]:
-        caption = get_payment_caption()
-        if os.path.exists(QR_PATH):
-            with open(QR_PATH, "rb") as f:
-                await update.message.reply_photo(photo=f, caption=caption, parse_mode="HTML")
-        else:
-            await update.message.reply_text(caption, parse_mode="HTML")
-
-    elif text == "📦 Stock":
-        if user_id not in ADMINS:
-            await update.message.reply_text("❌ <i>Restricted to Administrators only.</i>", parse_mode="HTML")
-            return
-        await update.message.reply_text(stock_text(), parse_mode="HTML")
-
-    elif text == "📞 Admin Help":
-        await cmd_help(update, context)
+    else:
+        msg, inline_markup = get_main_dashboard(user_id, name)
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_reply_keyboard())
 
 async def send_referral_panel(update_or_query, context, user_id):
     bot_info = await context.bot.get_me()
-    bot_username = bot_info.username
-    ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
+    ref_link = f"https://t.me/{bot_info.username}?start=ref_{user_id}"
     ref_count = db_get_referral_count(user_id)
+    earned_total = ref_count * 1
     
-    msg = (
+    text = (
         "╔═══════════════════════════╗\n"
-        "║  🎁 <b>REFERRAL & EARN CASH</b> 🎁   ║\n"
-        "╚═══════════════════════════╝\n"
-        "✨ <i>Invite friends and earn free wallet balance!</i>\n"
+        "║  🎁 <b>REFERRAL & EARN SYSTEM</b>  ║\n"
+        "╚═══════════════════════════╝\n\n"
+        "Share your referral link with friends or groups!\n"
+        "💰 <b>Earn ₹1.00 directly to your wallet</b> for every person who joins using your link!\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👥 <b>Total Invited Friends:</b> <b>{ref_count} Members</b>\n"
-        f"💰 <b>Total Referral Earnings:</b> <code>₹{ref_count * 1}.00</code>\n"
+        f"👥 <b>Your Total Referrals:</b> <code>{ref_count} Friends</code>\n"
+        f"💵 <b>Total Cash Earned:</b> <code>₹{earned_total}.00</code> 💳\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "💎 <b>HOW TO EARN ₹1 PER FRIEND:</b>\n"
-        "1️⃣ Share your referral link with friends.\n"
-        "2️⃣ When they start the bot for the first time, you instantly get <b>₹1.00</b> in your wallet!\n\n"
-        f"🔗 <b>Your Exclusive Referral Link:</b>\n"
-        f"<code>{ref_link}</code> <i>(Tap to Copy)</i>"
+        "🔗 <b>Your Exclusive Referral Link:</b>\n"
+        f"👉 <code>{ref_link}</code> <i>(Tap to Copy)</i>"
     )
     
-    kbd = [
-        [InlineKeyboardButton("📢 Share Referral Link", url=f"https://t.me/share/url?url={ref_link}&text={requests.utils.quote('🔥 Happy Gamer VIP Bot! Get 100% working game hack keys instantly. Join now:')}")],
+    keyboard = [
+        [InlineKeyboardButton("📤 Share Link", url=f"https://t.me/share/url?url={ref_link}&text=Join%20Happy%20Gamer%20VIP%20Store%20for%20Instant%20Hack%20Keys!")],
         [InlineKeyboardButton("◀️ Back to Main Menu", callback_data="back_main")]
     ]
     
-    if hasattr(update_or_query, 'edit_message_text'):
-        await update_or_query.edit_message_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(kbd))
+    if hasattr(update_or_query, "message") and update_or_query.message:
+        await update_or_query.message.reply_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
     else:
-        await update_or_query.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(kbd))
+        await update_or_query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query   = update.callback_query
-    user_id = query.from_user.id
-    name    = query.from_user.first_name
+    query = update.callback_query
     await query.answer()
-
-    if db_is_banned(user_id): return
+    user_id = query.from_user.id
+    name = query.from_user.first_name
 
     if query.data == "back_main":
         msg, inline_markup = get_main_dashboard(user_id, name)
         await query.edit_message_text(msg, parse_mode="HTML", reply_markup=inline_markup)
         return
 
+    if query.data == "add_bal":
+        if os.path.exists(QR_PATH):
+            with open(QR_PATH, "rb") as f:
+                await query.message.reply_photo(photo=f, caption=get_payment_caption(), parse_mode="HTML")
+        else:
+            await query.message.reply_text(get_payment_caption(), parse_mode="HTML")
+        return
+
     if query.data == "referral_menu":
         await send_referral_panel(query, context, user_id)
         return
 
+    # --- SCRIPT KEY MENU ---
     if query.data == "script_key_menu":
-        if user_id not in ADMINS and not db_is_script_admin(user_id): return
+        if user_id not in ADMINS and not db_is_script_admin(user_id):
+            await query.answer("Access Denied", show_alert=True)
+            return
         
-        is_main = user_id in ADMINS
-        s_bal = db_get_script_balance(user_id)
-        bal_text = "Unlimited (Main Admin)" if is_main else f"₹{s_bal}"
-
+        is_main = (user_id in ADMINS)
+        bal_text = "UNLIMITED [Main Admin]" if is_main else f"₹{db_get_script_balance(user_id)}.00"
+        
         kbd = [
-            [InlineKeyboardButton("⚡ 1 Day (₹20)", callback_data="sgen_1"), InlineKeyboardButton("⚡ 3 Days (₹40)", callback_data="sgen_3")],
-            [InlineKeyboardButton("⚡ 7 Days (₹80)", callback_data="sgen_7"), InlineKeyboardButton("⚡ 15 Days (₹150)", callback_data="sgen_15")],
-            [InlineKeyboardButton("👑 30 Days (₹200)", callback_data="sgen_30"), InlineKeyboardButton("⚡ 90 Days (₹500)", callback_data="sgen_90")],
-            [InlineKeyboardButton("◀️ Back to Main Menu", callback_data="back_main")]
+            [InlineKeyboardButton(f"⚡ 1 Day (₹{SCRIPT_PRICES[1]})", callback_data="sgen_1"), InlineKeyboardButton(f"⚡ 3 Days (₹{SCRIPT_PRICES[3]})", callback_data="sgen_3")],
+            [InlineKeyboardButton(f"🔥 7 Days (₹{SCRIPT_PRICES[7]})", callback_data="sgen_7"), InlineKeyboardButton(f"⚡ 15 Days (₹{SCRIPT_PRICES[15]})", callback_data="sgen_15")],
+            [InlineKeyboardButton(f"👑 30 Days (₹{SCRIPT_PRICES[30]})", callback_data="sgen_30"), InlineKeyboardButton(f"⚡ 90 Days (₹{SCRIPT_PRICES[90]})", callback_data="sgen_90")],
+            [InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]
         ]
         await query.edit_message_text(
             "╔═══════════════════════════╗\n"
@@ -1029,6 +1094,99 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # --- SHINIGAMI AUTO PLAY MENU ---
+    if query.data == "shini_menu":
+        p1 = get_price(user_id, "shini_1d"); p3 = get_price(user_id, "shini_3d")
+        p7 = get_price(user_id, "shini_7d"); p15 = get_price(user_id, "shini_15d")
+        p30 = get_price(user_id, "shini_30d")
+
+        keyboard = [
+            [InlineKeyboardButton(f"⚡ 1 Day (₹{p1})", callback_data="buy_shini_1d"), InlineKeyboardButton(f"⚡ 3 Days (₹{p3})", callback_data="buy_shini_3d")],
+            [InlineKeyboardButton(f"🔥 7 Days (₹{p7})", callback_data="buy_shini_7d"), InlineKeyboardButton(f"⚡ 15 Days (₹{p15})", callback_data="buy_shini_15d")],
+            [InlineKeyboardButton(f"👑 30 Days (₹{p30})", callback_data="buy_shini_30d")],
+            [InlineKeyboardButton("◀️ Back to Main Menu", callback_data="back_main")]
+        ]
+        text = (
+            "╔═══════════════════════════╗\n"
+            "║  👑 <b>SHINIGAMI AUTO PLAY</b> 🔥 ║\n"
+            "╚═══════════════════════════╝\n"
+            "📋 <b>Price List:</b>\n"
+            f"• 1 Days — <code>₹{p1}</code>\n"
+            f"• 3 Days — <code>₹{p3}</code>\n"
+            f"• 7 Days — <code>₹{p7}</code>\n"
+            f"• 15 Days — <code>₹{p15}</code>\n"
+            f"• 30 Days — <code>₹{p30}</code>\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "⚡ <i>Instant Auto Key • 100% Safe</i>"
+        )
+        await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    # --- LYNX ENGINE AUTO PLAY MENU ---
+    if query.data == "lynx_menu":
+        keyboard = [
+            [InlineKeyboardButton("🍏 Lynx Cheats iOS", callback_data="lynx_ios_sub")],
+            [InlineKeyboardButton("🤖 Lynx Cheats Android", callback_data="lynx_and_sub")],
+            [InlineKeyboardButton("◀️ Back to Main Menu", callback_data="back_main")]
+        ]
+        text = (
+            "╔═══════════════════════════╗\n"
+            "║  🔥 <b>LYNX ENGINE AUTO PLAY</b> 🔥 ║\n"
+            "╚═══════════════════════════╝\n\n"
+            "Select your platform (iOS or Android):"
+        )
+        await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if query.data == "lynx_ios_sub":
+        p1 = get_price(user_id, "lynx_ios_1d"); p3 = get_price(user_id, "lynx_ios_3d")
+        p7 = get_price(user_id, "lynx_ios_7d"); p15 = get_price(user_id, "lynx_ios_15d")
+        p30 = get_price(user_id, "lynx_ios_30d")
+        keyboard = [
+            [InlineKeyboardButton(f"🍏 1D (₹{p1})", callback_data="buy_lynx_ios_1d"), InlineKeyboardButton(f"🍏 3D (₹{p3})", callback_data="buy_lynx_ios_3d")],
+            [InlineKeyboardButton(f"🍏 7D (₹{p7})", callback_data="buy_lynx_ios_7d"), InlineKeyboardButton(f"🍏 15D (₹{p15})", callback_data="buy_lynx_ios_15d")],
+            [InlineKeyboardButton(f"🍏 30D (₹{p30})", callback_data="buy_lynx_ios_30d")],
+            [InlineKeyboardButton("◀️ Back", callback_data="lynx_menu")]
+        ]
+        text = (
+            "🌟 <b>LYNX CHEATS IOS PRICE LIST</b> ✅\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"🍏 1D PRICE 🔜 <code>₹{p1}</code> / $3.5\n"
+            f"🍏 3D PRICE ✍️ <code>₹{p3}</code> / $6\n"
+            f"🍏 7D PRICE ⌨ <code>₹{p7}</code> / $9\n"
+            f"🍏 15D PRICE ⌨ <code>₹{p15}</code> / $15\n"
+            f"🍏 30D PRICE ⌨ <code>₹{p30}</code> / $23\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "⚡ <i>Instant Auto Key • iOS Non-Jailbreak / Jailbreak</i>"
+        )
+        await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if query.data == "lynx_and_sub":
+        p1 = get_price(user_id, "lynx_and_1d"); p3 = get_price(user_id, "lynx_and_3d")
+        p7 = get_price(user_id, "lynx_and_7d"); p15 = get_price(user_id, "lynx_and_15d")
+        p30 = get_price(user_id, "lynx_and_30d")
+        keyboard = [
+            [InlineKeyboardButton(f"🤖 1D (₹{p1})", callback_data="buy_lynx_and_1d"), InlineKeyboardButton(f"🤖 3D (₹{p3})", callback_data="buy_lynx_and_3d")],
+            [InlineKeyboardButton(f"🤖 7D (₹{p7})", callback_data="buy_lynx_and_7d"), InlineKeyboardButton(f"🤖 15D (₹{p15})", callback_data="buy_lynx_and_15d")],
+            [InlineKeyboardButton(f"🤖 30D (₹{p30})", callback_data="buy_lynx_and_30d")],
+            [InlineKeyboardButton("◀️ Back", callback_data="lynx_menu")]
+        ]
+        text = (
+            "🌟 <b>LYNX CHEATS ANDROID PRICE LIST</b> ✅\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"🤖 1D PRICE ⌨ <code>₹{p1}</code> / $1.5\n"
+            f"🤖 3D PRICE ⌨ <code>₹{p3}</code> / $3\n"
+            f"🤖 7D PRICE ⌨ <code>₹{p7}</code> / $5\n"
+            f"🤖 15D PRICE ⌨ <code>₹{p15}</code> / $9\n"
+            f"🤖 30D PRICE ⌨ <code>₹{p30}</code> / $14\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "⚡ <i>Instant Auto Key • Root & No-Root Supported</i>"
+        )
+        await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    # --- AIM-AI CARROM ENGINE MENU ---
     if query.data == "aim_ai_menu":
         p1 = get_price(user_id, "aim_1d"); p3 = get_price(user_id, "aim_3d")
         p7 = get_price(user_id, "aim_7d"); p15 = get_price(user_id, "aim_15d")
@@ -1057,6 +1215,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
+    # --- AIM CARROM KING MENU ---
     if query.data == "aim_menu":
         keyboard = [
             [InlineKeyboardButton("🟢 AIM Normal Engine", callback_data="aim_normal")],
@@ -1076,13 +1235,14 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "aim_normal":
         p3 = get_price(user_id, "acn_3d"); p7 = get_price(user_id, "acn_7d"); p30 = get_price(user_id, "acn_30d")
         keyboard = [
-            [InlineKeyboardButton(f"⚡ 3 Days (₹{p3})", callback_data="buy_acn_3d"), InlineKeyboardButton(f"⚡ 1 Week (₹{p7})", callback_data="buy_acn_7d")],
-            [InlineKeyboardButton(f"⚡ 1 Month (₹{p30})", callback_data="buy_acn_30d")],
+            [InlineKeyboardButton(f"⚡ 3 Days (₹{p3})", callback_data="buy_acn_3d")],
+            [InlineKeyboardButton(f"🔥 1 Week (₹{p7})", callback_data="buy_acn_7d")],
+            [InlineKeyboardButton(f"👑 1 Month (₹{p30})", callback_data="buy_acn_30d")],
             [InlineKeyboardButton("◀️ Back", callback_data="aim_menu")]
         ]
         text = (
             "╔═══════════════════════════╗\n"
-            "║   🟢 <b>AIM CARROM (NORMAL)</b>     ║\n"
+            "║   🟢 <b>AIM NORMAL CARROM</b>    ║\n"
             "╚═══════════════════════════╝\n"
             "💎 <b>Instant Pricing:</b>\n"
             f"• 3 Days ➜ <code>₹{p3}</code>\n"
@@ -1095,13 +1255,14 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "aim_premium":
         p3 = get_price(user_id, "acp_3d"); p7 = get_price(user_id, "acp_7d"); p30 = get_price(user_id, "acp_30d")
         keyboard = [
-            [InlineKeyboardButton(f"⚡ 3 Days (₹{p3})", callback_data="buy_acp_3d"), InlineKeyboardButton(f"⚡ 1 Week (₹{p7})", callback_data="buy_acp_7d")],
-            [InlineKeyboardButton(f"⚡ 1 Month (₹{p30})", callback_data="buy_acp_30d")],
+            [InlineKeyboardButton(f"⚡ 3 Days (₹{p3})", callback_data="buy_acp_3d")],
+            [InlineKeyboardButton(f"🔥 1 Week (₹{p7})", callback_data="buy_acp_7d")],
+            [InlineKeyboardButton(f"👑 1 Month (₹{p30})", callback_data="buy_acp_30d")],
             [InlineKeyboardButton("◀️ Back", callback_data="aim_menu")]
         ]
         text = (
             "╔═══════════════════════════╗\n"
-            "║   🔥 <b>AIM CARROM (AUTO QUEUE)</b>  ║\n"
+            "║  ⚡ <b>AIM PREMIUM (AUTO QUEUE)</b> ║\n"
             "╚═══════════════════════════╝\n"
             "💎 <b>Instant Pricing:</b>\n"
             f"• 3 Days ➜ <code>₹{p3}</code>\n"
@@ -1111,6 +1272,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
+    # --- KOS MENU ---
     if query.data == "kos_menu":
         keyboard = [
             [InlineKeyboardButton("🎱 8 Ball Pool Panel", callback_data="kos_8b")],
@@ -1151,23 +1313,26 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"🔥 <b>KOS FREEFIRE PANEL VIP</b>\n• 1 Day ➜ ₹{p1} | 7 Days ➜ ₹{p7} | 30 Days ➜ ₹{p30}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
+    # BITAIM MENU
     if query.data == "bitaim_menu":
-        p7 = get_price(user_id, "bit7"); p30 = get_price(user_id, "bit30"); p90 = get_price(user_id, "bit90"); plt = get_price(user_id, "bitlt")
+        p7 = get_price(user_id, "bit7"); p30 = get_price(user_id, "bit30")
+        p90 = get_price(user_id, "bit90"); plt = get_price(user_id, "bitlt")
         keyboard = [
             [InlineKeyboardButton(f"⚡ 7 Days (₹{p7})", callback_data="buy_bit7"), InlineKeyboardButton(f"⚡ 30 Days (₹{p30})", callback_data="buy_bit30")],
-            [InlineKeyboardButton(f"⚡ 3 Months (₹{p90})", callback_data="buy_bit90"), InlineKeyboardButton(f"⚡ Lifetime (₹{plt})", callback_data="buy_bitlt")],
-            [InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]
+            [InlineKeyboardButton(f"⚡ 90 Days (₹{p90})", callback_data="buy_bit90"), InlineKeyboardButton(f"👑 Lifetime (₹{plt})", callback_data="buy_bitlt")],
+            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
         ]
-        await query.edit_message_text(f"⚡ <b>BITAIM OFFICIAL SYSTEM</b>\n• 7 Days ➜ ₹{p7} | 30 Days ➜ ₹{p30} | 3 Months ➜ ₹{p90} | Lifetime ➜ ₹{plt}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text(f"⚡ <b>BITAIM PREMIUM HACK</b>\n• 7 Days: ₹{p7} | 30 Days: ₹{p30}\n• 90 Days: ₹{p90} | Lifetime: ₹{plt}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
+    # SNAKE MENU
     if query.data == "snk_menu":
         keyboard = [
-            [InlineKeyboardButton("🎯 Snake Carrom Pool", callback_data="snkc_sub")],
-            [InlineKeyboardButton("🎱 Snake 8 Ball Pool", callback_data="snk8_sub")],
-            [InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]
+            [InlineKeyboardButton("🐍 Snake Carrom Pool", callback_data="snkc_sub")],
+            [InlineKeyboardButton("🐍 Snake 8 Ball Pool", callback_data="snk8_sub")],
+            [InlineKeyboardButton("◀️ Back", callback_data="back_main")]
         ]
-        await query.edit_message_text("Select Snake variant:", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text("Select Snake Engine version:", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     if query.data == "snkc_sub":
@@ -1190,6 +1355,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"🐍 <b>SNAKE 8 BALL POOL</b>\n• 3 Days ➜ ₹{p3} | 10 Days ➜ ₹{p10} | 30 Days ➜ ₹{p30}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
+    # --- BUYING & INSTANT CONFIRMATION (WITH ANTI-DOUBLE-CLICK LOCK) ---
     if query.data.startswith("buy_"):
         plan_id = query.data.replace("buy_", "")
         plan = db_get_plan(plan_id)
@@ -1218,91 +1384,138 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         order_locks.add(user_id)
         
         try:
-            await query.edit_message_text("⏳ <b>Processing order & generating instant VIP key...</b>", parse_mode="HTML")
-        except Exception: pass
+            plan_id = pending_orders[user_id]
+            plan = db_get_plan(plan_id)
+            if not plan:
+                pending_orders.pop(user_id, None)
+                await query.edit_message_text("❌ <b>Invalid Product Plan!</b>", parse_mode="HTML")
+                return
 
-        plan_id = pending_orders.pop(user_id, None)
-        if not plan_id:
-            order_locks.discard(user_id)
-            return
+            price = get_price(user_id, plan_id)
+            bal = db_get_balance(user_id)
 
-        plan    = db_get_plan(plan_id)
-        price   = get_price(user_id, plan_id)
-        bal     = db_get_balance(user_id)
+            if bal < price:
+                pending_orders.pop(user_id, None)
+                kbd = [[InlineKeyboardButton("➕ Add Balance Now", callback_data="add_bal")]]
+                await query.edit_message_text(
+                    f"⚠️ <b>INSUFFICIENT BALANCE!</b>\n\n"
+                    f"Required: <code>₹{price}</code>\n"
+                    f"Your Balance: <code>₹{bal}</code>\n"
+                    f"Needed: <code>₹{price - bal}</code>\n\n"
+                    f"Please add funds to your wallet.",
+                    parse_mode="HTML",
+                    reply_markup=InlineKeyboardMarkup(kbd)
+                )
+                return
 
-        if bal < price:
-            order_locks.discard(user_id)
-            await query.edit_message_text(
-                f"❌ <b>INSUFFICIENT FUNDS!</b>\nRequired: ₹{price} | Your Balance: ₹{bal}\n👉 Please tap Add Balance.",
-                parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💳 Add Balance Now", callback_data="add_bal")]])
+            if db_count_keys(plan_id) <= 0:
+                pending_orders.pop(user_id, None)
+                await query.edit_message_text(
+                    f"⚠️ <b>OUT OF STOCK!</b>\n\n"
+                    f"<code>{plan['game']} ({plan['label']})</code> is currently out of stock.\n"
+                    f"Please contact admin {ADMIN_USERNAME} for quick restock.",
+                    parse_mode="HTML"
+                )
+                return
+
+            # Execute transaction
+            key = db_pop_key(plan_id)
+            if not key:
+                pending_orders.pop(user_id, None)
+                await query.edit_message_text("⚠️ <b>Stock depleted just now! Please try again.</b>", parse_mode="HTML")
+                return
+
+            # Remove pending order immediately
+            pending_orders.pop(user_id, None)
+            
+            # Deduct balance & record
+            db_add_balance(user_id, -price)
+            db_record_order(user_id, plan["game"], plan["label"], price, key)
+            new_bal = db_get_balance(user_id)
+
+            success_msg = (
+                "╔═══════════════════════════╗\n"
+                "║   🎉 <b>KEY DELIVERED INSTANTLY</b>   ║\n"
+                "╚═══════════════════════════╝\n\n"
+                f"🎮 <b>Product:</b> {plan['game']} ({plan['label']})\n"
+                f"💵 <b>Paid:</b> <code>₹{price}.00</code>\n"
+                f"💳 <b>Remaining Balance:</b> <code>₹{new_bal}.00</code>\n"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                "🔑 <b>YOUR VIP ACTIVATION KEY:</b> <i>(👇 Tap to Copy)</i>\n\n"
+                f"<code>{key}</code>\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                "📥 <b>Download Mod App:</b> https://t.me/hgfileall\n"
+                "❤️ <i>Thank you for choosing Happy Gamer Official!</i>"
             )
-            return
+            
+            back_kbd = [[InlineKeyboardButton("◀️ Return to Dashboard", callback_data="back_main")]]
+            await query.edit_message_text(success_msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(back_kbd))
 
-        if "bit" in plan_id:
-            awaiting_gmail[user_id] = plan_id
+            for admin_id in ADMINS:
+                try:
+                    await context.bot.send_message(
+                        chat_id=admin_id,
+                        text=(
+                            f"🛒 <b>AUTOMATED SALE SUCCESSFUL!</b>\n"
+                            f"👤 <b>Buyer:</b> {name} (<code>{user_id}</code>)\n"
+                            f"🎮 <b>Item:</b> {plan['game']} ({plan['label']})\n"
+                            f"💰 <b>Amount:</b> ₹{price}\n"
+                            f"🔑 <b>Delivered Key:</b> <code>{key}</code>"
+                        ),
+                        parse_mode="HTML"
+                    )
+                except Exception: pass
+
+        finally:
             order_locks.discard(user_id)
-            await query.edit_message_text("📧 Please send your <b>Google Play Gmail ID</b> in chat:", parse_mode="HTML")
-            return
-
-        if db_count_keys(plan_id) == 0:
-            order_locks.discard(user_id)
-            await query.edit_message_text(f"⚠️ <b>OUT OF STOCK!</b> Contact {ADMIN_USERNAME} for keys.", parse_mode="HTML")
-            return
-
-        new_bal = bal - price
-        db_set_balance(user_id, new_bal)
-        key = db_pop_key(plan_id)
-        gname = plan['game'] if plan else "VIP Hack"
-        glabel = plan['label'] if plan else plan_id
-        db_record_order(user_id, gname, glabel, price, key)
-
-        order_locks.discard(user_id)
-
-        success_receipt = (
-            "╔═══════════════════════════╗\n"
-            "║  🎉 <b>PURCHASE SUCCESSFUL</b>     ║\n"
-            "╚═══════════════════════════╝\n"
-            f"👤 <b>Customer:</b> {name}\n"
-            f"🎮 <b>Item:</b> {gname} ({glabel})\n"
-            f"💰 <b>Amount Paid:</b> <code>₹{price}</code>\n"
-            f"💳 <b>Remaining Bal:</b> <code>₹{new_bal}</code>\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "🔑 <b>YOUR VIP KEY:</b> <i>(Tap to Copy)</i>\n\n"
-            f"<code>{key}</code>\n\n"
-            "✨ <i>Enjoy your game!</i> 🚀"
-        )
-        await query.edit_message_text(success_receipt, parse_mode="HTML")
         return
 
     if query.data == "orders_hist":
         orders = db_get_user_orders(user_id)
         if not orders:
-            await query.edit_message_text("📜 No purchase history yet!", parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
+            await query.edit_message_text("📜 <b>You haven't made any purchases yet.</b>", parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
             return
-        msg = "📜 <b>YOUR LAST 10 PURCHASES:</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        lines = [
+            "╔═══════════════════════════╗",
+            "║    📜 <b>YOUR RECENT PURCHASES</b>   ║",
+            "╚═══════════════════════════╝\n"
+        ]
         for o in orders:
-            msg += f"💎 <b>{o['game']} ({o['plan_label']})</b>\n  💰 Paid: ₹{o['price']} | 🕒 {o['timestamp']}\n  🔑 Key: <code>{o['key_delivered']}</code>\n\n"
-        await query.edit_message_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
-        return
-
-    if query.data == "add_bal":
-        caption = get_payment_caption()
-        if os.path.exists(QR_PATH):
-            with open(QR_PATH, "rb") as f:
-                await context.bot.send_photo(chat_id=user_id, photo=f, caption=caption, parse_mode="HTML")
-        else:
-            await context.bot.send_message(chat_id=user_id, text=caption, parse_mode="HTML")
+            lines.append(f"• <b>{o['game']}</b> ({o['plan_label']}) - ₹{o['price']}\n  🔑 <code>{o['key_delivered']}</code>\n  📅 {o['timestamp']}\n")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        kbd = [[InlineKeyboardButton("◀️ Back to Main", callback_data="back_main")]]
+        await query.edit_message_text("\n".join(lines), parse_mode="HTML", reply_markup=InlineKeyboardMarkup(kbd))
         return
 
     if query.data == "become_reseller":
-        await query.edit_message_text(f"👑 <b>Contact Founder for Reseller Panel:</b> {ADMIN_USERNAME}", parse_mode="HTML", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]]))
+        is_res = db_is_reseller(user_id)
+        if is_res:
+            await query.edit_message_text(
+                "👑 <b>YOU ARE ALREADY A VIP RESELLER!</b>\n\nYou enjoy special discounted reseller prices on all keys automatically.",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Back", callback_data="back_main")]])
+            )
+            return
+        awaiting_gmail[user_id] = True
+        await query.edit_message_text(
+            "╔═══════════════════════════╗\n"
+            "║   👑 <b>APPLY FOR RESELLER PANEL</b>  ║\n"
+            "╚═══════════════════════════╝\n\n"
+            "VIP Resellers get wholesale discounted pricing on all keys.\n\n"
+            "👉 Please <b>reply with your Email Address</b> to submit application:",
+            parse_mode="HTML"
+        )
         return
 
+    # Admin Payment Approval Handler
     if query.data.startswith("pay_"):
-        parts     = query.data.split("_")
+        if user_id not in ADMINS:
+            await query.answer("Admin only", show_alert=True)
+            return
+        parts = query.data.split("_")
         target_id = int(parts[1])
-        action    = parts[2]
+        action = parts[2]
+
         if action == "reject":
             req = payment_requests.pop(target_id, None)
             if req and req.get("task"): req["task"].cancel()
@@ -1347,6 +1560,24 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╚═══════════════════════════════════════╝\n\n"
         "🔑 <b>How to Add Stock Key (/addkey):</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "👑 <b>SHINIGAMI AUTO PLAY:</b>\n"
+        "• <code>/addkey shini_1d YOUR_KEY</code> (1 Day)\n"
+        "• <code>/addkey shini_3d YOUR_KEY</code> (3 Days)\n"
+        "• <code>/addkey shini_7d YOUR_KEY</code> (7 Days)\n"
+        "• <code>/addkey shini_15d YOUR_KEY</code> (15 Days)\n"
+        "• <code>/addkey shini_30d YOUR_KEY</code> (30 Days)\n\n"
+        "🍏 <b>LYNX AUTO PLAY (iOS):</b>\n"
+        "• <code>/addkey lynx_ios_1d YOUR_KEY</code> (1 Day)\n"
+        "• <code>/addkey lynx_ios_3d YOUR_KEY</code> (3 Days)\n"
+        "• <code>/addkey lynx_ios_7d YOUR_KEY</code> (7 Days)\n"
+        "• <code>/addkey lynx_ios_15d YOUR_KEY</code> (15 Days)\n"
+        "• <code>/addkey lynx_ios_30d YOUR_KEY</code> (30 Days)\n\n"
+        "🤖 <b>LYNX AUTO PLAY (Android):</b>\n"
+        "• <code>/addkey lynx_and_1d YOUR_KEY</code> (1 Day)\n"
+        "• <code>/addkey lynx_and_3d YOUR_KEY</code> (3 Days)\n"
+        "• <code>/addkey lynx_and_7d YOUR_KEY</code> (7 Days)\n"
+        "• <code>/addkey lynx_and_15d YOUR_KEY</code> (15 Days)\n"
+        "• <code>/addkey lynx_and_30d YOUR_KEY</code> (30 Days)\n\n"
         "👿 <b>AIM-AI CARROM:</b>\n"
         "• <code>/addkey aim_1d YOUR_KEY</code> (01 Day)\n"
         "• <code>/addkey aim_3d YOUR_KEY</code> (03 Days)\n"
@@ -1372,6 +1603,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🛠️ <b>Other Admin Commands:</b>\n"
         "• <code>/resetdata</code> / <code>/resetall</code> ➜ Reset all database balances to 0\n"
         "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code> ➜ Auto Script Key Generate\n"
+        "• <code>/removescriptkey &lt;device_id&gt;</code> ➜ Remove & Deactivate Script Device Key\n"
         "• <code>/cleangist</code> ➜ Delete Expired Keys from Cloud\n"
         "• <code>/testgist</code> ➜ Test Cloud Connection\n"
         "• <code>/stock</code> ➜ Check Live Stock\n"
@@ -1404,39 +1636,53 @@ async def cmd_removescriptadmin(update: Update, context: ContextTypes.DEFAULT_TY
     try:
         uid = int(context.args[0])
         db_remove_script_admin(uid)
-        await update.message.reply_text(f"❌ User <code>{uid}</code> removed from Script Key Admins.", parse_mode="HTML")
+        await update.message.reply_text(f"🗑️ User <code>{uid}</code> removed from Script Key Admins.", parse_mode="HTML")
     except Exception: await update.message.reply_text("Usage: <code>/removescriptadmin &lt;user_id&gt;</code>", parse_mode="HTML")
 
 async def cmd_scriptadmins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
-    alist = db_all_script_admins()
-    if not alist:
-        await update.message.reply_text("<i>No script admins registered yet.</i>", parse_mode="HTML")
+    admins = db_all_script_admins()
+    if not admins:
+        await update.message.reply_text("ℹ️ No custom Script Admins configured.", parse_mode="HTML")
         return
-    await update.message.reply_text("🛠️ <b>SCRIPT KEY ADMINS:</b>\n" + "\n".join(f"• <code>{a}</code>" for a in alist), parse_mode="HTML")
+    msg = "🛠️ <b>ACTIVE SCRIPT KEY ADMINS:</b>\n\n"
+    for a in admins:
+        bal = db_get_script_balance(a)
+        msg += f"• <code>{a}</code> | Script Balance: <b>₹{bal}</b>\n"
+    await update.message.reply_text(msg, parse_mode="HTML")
 
 async def cmd_addscriptbal(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     try:
         uid = int(context.args[0])
-        amount = int(context.args[1])
-        new_bal = db_add_script_balance(uid, amount)
-        await update.message.reply_text(f"✅ Credited ₹{amount} Script Balance to <code>{uid}</code>\n💳 New Script Balance: ₹{new_bal}", parse_mode="HTML")
-        try: await context.bot.send_message(uid, f"🎉 <b>Admin added ₹{amount} to your Script Wallet!</b>\n💳 Current Script Balance: ₹{new_bal}", parse_mode="HTML")
+        amt = int(context.args[1])
+        new_bal = db_add_script_balance(uid, amt)
+        await update.message.reply_text(f"✅ Added <b>₹{amt}</b> Script Balance to <code>{uid}</code>!\n💰 Current Script Balance: <b>₹{new_bal}</b>", parse_mode="HTML")
+        try:
+            await context.bot.send_message(
+                chat_id=uid,
+                text=f"🎉 <b>SCRIPT BALANCE CREDITED!</b>\nAdmin added <b>₹{amt}</b> to your Script Balance.\n💰 Current Balance: <b>₹{new_bal}</b>",
+                parse_mode="HTML"
+            )
         except Exception: pass
-    except Exception: 
-        await update.message.reply_text("Usage: <code>/addscriptbal &lt;user_id&gt; &lt;amount&gt;</code>", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/addscriptbal &lt;user_id&gt; &lt;amount&gt;</code>", parse_mode="HTML")
 
 async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     name = update.effective_user.first_name
-    is_main = user_id in ADMINS
+    is_main = (user_id in ADMINS)
     
-    if not is_main and not db_is_script_admin(user_id): return
-    
-    if len(context.args) < 2:
-        await update.message.reply_text("💡 <b>Format:</b> <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>", parse_mode="HTML")
+    if not is_main and not db_is_script_admin(user_id):
         return
+
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "💡 <b>Usage:</b> <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n"
+            "<b>Example:</b> <code>/scriptkey 30 550e8400e29b41d4a716446655440000</code>",
+            parse_mode="HTML"
+        )
+        return
+
     try:
         days = int(context.args[0])
         device_id = context.args[1].strip()
@@ -1473,10 +1719,33 @@ async def cmd_scriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await status_msg.edit_text(receipt_msg, parse_mode="HTML")
         else:
             if not is_main:
-                db_add_script_balance(user_id, price) # Refund
+                db_add_script_balance(user_id, price)
             await status_msg.edit_text(f"❌ <b>Cloud Update Failed:</b> <code>{err}</code>", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ <b>Error:</b> <code>{e}</code>", parse_mode="HTML")
+
+async def cmd_removescriptkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in ADMINS and not db_is_script_admin(user_id):
+        return
+    if not context.args:
+        await update.message.reply_text("💡 <b>Usage:</b> <code>/removescriptkey &lt;device_id&gt;</code>", parse_mode="HTML")
+        return
+    device_id = context.args[0].strip()
+    status_msg = await update.message.reply_text("⏳ <i>Searching & removing key from Cloud Server...</i>", parse_mode="HTML")
+    success, count, err = remove_device_from_gist(device_id)
+    if success:
+        await status_msg.edit_text(
+            "╔═══════════════════════════╗\n"
+            "║  🗑️ <b>SCRIPT KEY REMOVED!</b>    ║\n"
+            "╚═══════════════════════════╝\n\n"
+            f"📱 <b>Device ID:</b> <code>{device_id}</code>\n"
+            f"⚡ <b>Removed Entries:</b> <code>{count}</code>\n"
+            "☁️ <b>Cloud Status:</b> <i>Key has been deactivated & deleted from server!</i>",
+            parse_mode="HTML"
+        )
+    else:
+        await status_msg.edit_text(f"❌ <b>Removal Failed:</b> <code>{err}</code>", parse_mode="HTML")
 
 async def cmd_cleangist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -1548,41 +1817,42 @@ async def cmd_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_addkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     try:
-        plan = context.args[0].lower(); new_key = context.args[1]
-        db_add_key(plan, new_key)
-        await update.message.reply_text(f"✅ <b>Stock Added for {plan}:</b> <code>{new_key}</code>\n📦 Total Stock: {db_count_keys(plan)}", parse_mode="HTML")
-    except Exception: await update.message.reply_text("Usage: <code>/addkey &lt;plan_code&gt; &lt;key&gt;</code>", parse_mode="HTML")
+        plan = context.args[0].lower(); key = context.args[1]
+        db_add_key(plan, key)
+        count = db_count_keys(plan)
+        await update.message.reply_text(f"✅ Key added to <code>{plan}</code>!\n📦 Stock: {count} available.", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/addkey &lt;plan_id&gt; &lt;key&gt;</code>", parse_mode="HTML")
 
 async def cmd_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS: return
     await update.message.reply_text(stock_text(), parse_mode="HTML")
 
 async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS: return
     await update.message.reply_text(price_list_text(), parse_mode="HTML")
 
 async def cmd_deliver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
-    if len(context.args) < 2:
-        await update.message.reply_text("Usage: <code>/deliver &lt;user_id&gt; &lt;key&gt;</code>", parse_mode="HTML"); return
-    uid = int(context.args[0]); key = " ".join(context.args[1:])
-    await context.bot.send_message(uid, f"🔑 <b>YOUR VIP KEY:</b>\n\n<code>{key}</code>", parse_mode="HTML")
-    await update.message.reply_text(f"✅ Key delivered to <code>{uid}</code>", parse_mode="HTML")
+    try:
+        uid = int(context.args[0]); key = " ".join(context.args[1:])
+        await context.bot.send_message(uid, f"🎁 <b>VIP KEY DELIVERED BY ADMIN:</b>\n\n<code>{key}</code>", parse_mode="HTML")
+        await update.message.reply_text(f"✅ Delivered to <code>{uid}</code>", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/deliver &lt;user_id&gt; &lt;key&gt;</code>", parse_mode="HTML")
 
 async def cmd_setprice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     try:
-        plan = context.args[0].lower(); reg = int(context.args[1]); res = int(context.args[2])
-        db_set_price(plan, reg, res)
-        await update.message.reply_text(f"✅ <b>Price Updated for {plan}:</b> Regular ₹{reg}, Reseller ₹{res}", parse_mode="HTML")
-    except Exception: await update.message.reply_text("Usage: <code>/setprice &lt;plan_code&gt; &lt;regular&gt; &lt;reseller&gt;</code>", parse_mode="HTML")
+        plan_id = context.args[0].lower(); reg = int(context.args[1]); res = int(context.args[2])
+        db_set_price(plan_id, reg, res)
+        await update.message.reply_text(f"✅ Price updated for <code>{plan_id}</code>\nRegular: ₹{reg} | Reseller: ₹{res}", parse_mode="HTML")
+    except Exception: await update.message.reply_text("Usage: <code>/setprice &lt;plan_id&gt; &lt;reg_price&gt; &lt;reseller_price&gt;</code>", parse_mode="HTML")
 
 async def cmd_addreseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
     try:
         uid = int(context.args[0])
         db_add_reseller(uid)
-        await update.message.reply_text(f"👑 User {uid} elevated to Official VIP Reseller!", parse_mode="HTML")
+        await update.message.reply_text(f"👑 User <code>{uid}</code> added to Resellers!", parse_mode="HTML")
+        try: await context.bot.send_message(uid, "👑 <b>CONGRATULATIONS! You have been granted VIP Reseller status!</b>\nYou now get discounted prices across the store.", parse_mode="HTML")
+        except Exception: pass
     except Exception: await update.message.reply_text("Usage: <code>/addreseller &lt;user_id&gt;</code>", parse_mode="HTML")
 
 async def cmd_removereseller(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1590,25 +1860,25 @@ async def cmd_removereseller(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         uid = int(context.args[0])
         db_remove_reseller(uid)
-        await update.message.reply_text(f"❌ User {uid} demoted from Resellers", parse_mode="HTML")
+        await update.message.reply_text(f"User <code>{uid}</code> removed from Resellers.", parse_mode="HTML")
     except Exception: await update.message.reply_text("Usage: <code>/removereseller &lt;user_id&gt;</code>", parse_mode="HTML")
 
 async def cmd_resellers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
-    rlist = db_all_resellers()
-    if not rlist:
-        await update.message.reply_text("<i>No resellers registered yet.</i>", parse_mode="HTML")
+    resellers = db_all_resellers()
+    if not resellers:
+        await update.message.reply_text("No VIP Resellers found.", parse_mode="HTML")
         return
-    await update.message.reply_text("👑 <b>OFFICIAL RESELLERS:</b>\n" + "\n".join(f"• <code>{r}</code>" for r in rlist), parse_mode="HTML")
+    msg = "👑 <b>ACTIVE VIP RESELLERS:</b>\n" + "\n".join([f"• <code>{uid}</code>" for uid in resellers])
+    await update.message.reply_text(msg, parse_mode="HTML")
 
+# --- MAIN RUNNER ---
 if __name__ == "__main__":
     if not TOKEN:
-        print("ERROR: TELEGRAM_BOT_TOKEN is not set.")
-        exit(1)
-        
-    init_db(force_fresh=False)
-    
+        raise ValueError("TELEGRAM_BOT_TOKEN environment variable is missing!")
+
     app = ApplicationBuilder().token(TOKEN).build()
+
     app.add_handler(CommandHandler("start",          start))
     app.add_handler(CommandHandler("help",           cmd_help))
     app.add_handler(CommandHandler("resetdata",      cmd_resetdata))
@@ -1619,6 +1889,9 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("broadcast",      cmd_broadcast))
     app.add_handler(CommandHandler("sendall",        cmd_broadcast))
     app.add_handler(CommandHandler("scriptkey",      cmd_scriptkey))
+    app.add_handler(CommandHandler("removescriptkey", cmd_removescriptkey))
+    app.add_handler(CommandHandler("delscriptkey",    cmd_removescriptkey))
+    app.add_handler(CommandHandler("scriptremove",    cmd_removescriptkey))
     app.add_handler(CommandHandler("cleangist",      cmd_cleangist))
     app.add_handler(CommandHandler("testgist",       cmd_testgist))
     app.add_handler(CommandHandler("ban",            cmd_ban))
@@ -1634,7 +1907,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("removereseller", cmd_removereseller))
     app.add_handler(CommandHandler("resellers",      cmd_resellers))
     
-    # NEW SCRIPT ADMIN COMMANDS
+    # SCRIPT ADMIN COMMANDS
     app.add_handler(CommandHandler("addscriptadmin", cmd_addscriptadmin))
     app.add_handler(CommandHandler("removescriptadmin", cmd_removescriptadmin))
     app.add_handler(CommandHandler("scriptadmins",   cmd_scriptadmins))
