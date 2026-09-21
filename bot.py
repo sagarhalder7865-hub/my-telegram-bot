@@ -431,7 +431,7 @@ def init_db(force_fresh=False):
                 for sa in gh_data.get("script_admins", []):
                     db.execute("INSERT OR IGNORE INTO script_admins (user_id) VALUES (?)", (sa["user_id"],))
                 for k in gh_data.get("keys", []):
-                    db.execute("INSERT OR IGNORE INTO keys (plan, key_code) VALUES (?,?)", (k["plan"], k["key_code"]))
+                    db.execute("INSERT OR IGNORE INTO keys (plan, key_code) VALUES (?,?)", (k.get("plan"), k.get("key_code") or k.get("key")))
                 for r in gh_data.get("resellers", []):
                     db.execute("INSERT OR IGNORE INTO resellers (user_id) VALUES (?)", (r["user_id"],))
                 for o in gh_data.get("orders", []):
