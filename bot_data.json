@@ -591,6 +591,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 7449933725,
+      "first_name": "sarfaraz",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-21 19:48:18"
+    },
+    {
       "user_id": 7450330219,
       "first_name": "Ali",
       "username": "",
@@ -1666,7 +1676,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-21 10:16:56"
+      "added_at": "2026-09-21 19:48:17"
     }
   ],
   "orders": [],
@@ -2016,7 +2026,7 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-09-21 10:16:56"
+      "created_at": "2026-09-21 19:48:17"
     }
   ]
 }
