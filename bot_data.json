@@ -11,6 +11,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 1028431428,
+      "first_name": "Gowtham",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-22 11:51:17"
+    },
+    {
       "user_id": 1075959851,
       "first_name": "\u20df\ud835\udc12\u026a\ud835\udc11 \ud835\udc06\u1d0f\ud835\udc03\u20e4\u20df\u269c\ufe0f\ud83c\udf37",
       "username": "txd_god",
@@ -1716,7 +1726,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-22 02:13:39"
+      "added_at": "2026-09-22 09:32:10"
     }
   ],
   "orders": [],
