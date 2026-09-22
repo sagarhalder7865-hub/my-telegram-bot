@@ -1621,6 +1621,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8912516322,
+      "first_name": "Jakir",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-22 15:44:07"
+    },
+    {
       "user_id": 8923206762,
       "first_name": "Firoj Khan",
       "username": "",
@@ -1726,7 +1736,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-22 09:32:10"
+      "added_at": "2026-09-22 14:15:13"
     }
   ],
   "orders": [],
