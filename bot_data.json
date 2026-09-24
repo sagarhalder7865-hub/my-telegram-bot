@@ -711,6 +711,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 7664888814,
+      "first_name": "Trish",
+      "username": "Trishgarg",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-24 09:36:59"
+    },
+    {
       "user_id": 7681387506,
       "first_name": "AMIL",
       "username": "",
@@ -1746,7 +1756,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-23 14:31:28"
+      "added_at": "2026-09-24 09:36:58"
     }
   ],
   "orders": [],
