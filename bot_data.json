@@ -2061,8 +2061,8 @@
       "plan_id": "acp_7d",
       "game": "AIM Premium",
       "label": "1 Week",
-      "regular": 200,
-      "reseller": 170
+      "regular": 500,
+      "reseller": 490
     },
     {
       "plan_id": "acp_30d",
