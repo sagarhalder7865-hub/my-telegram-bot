@@ -2033,8 +2033,8 @@
       "plan_id": "acn_3d",
       "game": "AIM Normal",
       "label": "3 Days",
-      "regular": 100,
-      "reseller": 80
+      "regular": 240,
+      "reseller": 240
     },
     {
       "plan_id": "acn_7d",
