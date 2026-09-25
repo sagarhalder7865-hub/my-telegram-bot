@@ -421,6 +421,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 6681338420,
+      "first_name": "Yajath\u26a1",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-25 12:50:16"
+    },
+    {
       "user_id": 6712991063,
       "first_name": "M",
       "username": "",
@@ -629,6 +639,16 @@
       "is_banned": 0,
       "referrer_id": 0,
       "joined_at": "2026-09-21 02:08:09"
+    },
+    {
+      "user_id": 7138861073,
+      "first_name": "Rahel",
+      "username": "rahelahmedkhan",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-25 09:53:57"
     },
     {
       "user_id": 7171379649,
