@@ -2047,8 +2047,8 @@
       "plan_id": "acn_30d",
       "game": "AIM Normal",
       "label": "1 Month",
-      "regular": 490,
-      "reseller": 420
+      "regular": 1000,
+      "reseller": 980
     },
     {
       "plan_id": "acp_3d",
