@@ -881,6 +881,16 @@
       "joined_at": "2026-09-21 06:01:26"
     },
     {
+      "user_id": 7962326970,
+      "first_name": "Virendar",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-25 02:42:43"
+    },
+    {
       "user_id": 8018476532,
       "first_name": "tousif",
       "username": "",
@@ -1836,7 +1846,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-24 22:49:54"
+      "added_at": "2026-09-25 02:16:50"
     }
   ],
   "orders": [],
