@@ -1850,11 +1850,7 @@
     }
   ],
   "orders": [],
-  "resellers": [
-    {
-      "user_id": 8925068655
-    }
-  ],
+  "resellers": [],
   "prices": [
     {
       "plan_id": "shini_1d",
