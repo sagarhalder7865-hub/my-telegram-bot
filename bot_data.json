@@ -161,6 +161,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 5359666417,
+      "first_name": ".....",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-25 09:53:55"
+    },
+    {
       "user_id": 5370275825,
       "first_name": "q",
       "username": "",
@@ -1339,6 +1349,16 @@
       "is_banned": 0,
       "referrer_id": 0,
       "joined_at": "2026-09-21 02:08:09"
+    },
+    {
+      "user_id": 8568058623,
+      "first_name": "HsnaBb",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-25 09:53:56"
     },
     {
       "user_id": 8596722998,
