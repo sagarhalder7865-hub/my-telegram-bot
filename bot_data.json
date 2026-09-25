@@ -1311,6 +1311,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8556410737,
+      "first_name": "Vinod",
+      "username": "Vinod628120",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-25 09:53:54"
+    },
+    {
       "user_id": 8559522921,
       "first_name": "Rejuwan",
       "username": "",
@@ -1906,7 +1916,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-25 02:16:50"
+      "added_at": "2026-09-25 09:53:53"
     }
   ],
   "orders": [],
@@ -2021,36 +2031,36 @@
       "plan_id": "aim_1d",
       "game": "AIM-AI Carrom",
       "label": "01 Day",
-      "regular": 90,
-      "reseller": 90
+      "regular": 70,
+      "reseller": 65
     },
     {
       "plan_id": "aim_3d",
       "game": "AIM-AI Carrom",
       "label": "03 Days",
-      "regular": 180,
-      "reseller": 180
+      "regular": 140,
+      "reseller": 130
     },
     {
       "plan_id": "aim_7d",
       "game": "AIM-AI Carrom",
       "label": "07 Days",
-      "regular": 290,
-      "reseller": 280
+      "regular": 240,
+      "reseller": 220
     },
     {
       "plan_id": "aim_15d",
       "game": "AIM-AI Carrom",
       "label": "15 Days",
-      "regular": 490,
-      "reseller": 480
+      "regular": 360,
+      "reseller": 340
     },
     {
       "plan_id": "aim_30d",
       "game": "AIM-AI Carrom",
       "label": "30 Days",
-      "regular": 780,
-      "reseller": 750
+      "regular": 650,
+      "reseller": 600
     },
     {
       "plan_id": "aim_90d",
@@ -2063,43 +2073,43 @@
       "plan_id": "acn_3d",
       "game": "AIM Normal",
       "label": "3 Days",
-      "regular": 240,
-      "reseller": 240
+      "regular": 100,
+      "reseller": 80
     },
     {
       "plan_id": "acn_7d",
       "game": "AIM Normal",
       "label": "1 Week",
-      "regular": 450,
-      "reseller": 450
+      "regular": 180,
+      "reseller": 150
     },
     {
       "plan_id": "acn_30d",
       "game": "AIM Normal",
       "label": "1 Month",
-      "regular": 1000,
-      "reseller": 980
+      "regular": 490,
+      "reseller": 420
     },
     {
       "plan_id": "acp_3d",
       "game": "AIM Premium",
       "label": "3 Days",
-      "regular": 300,
-      "reseller": 280
+      "regular": 120,
+      "reseller": 100
     },
     {
       "plan_id": "acp_7d",
       "game": "AIM Premium",
       "label": "1 Week",
-      "regular": 500,
-      "reseller": 490
+      "regular": 200,
+      "reseller": 170
     },
     {
       "plan_id": "acp_30d",
       "game": "AIM Premium",
       "label": "1 Month",
-      "regular": 1200,
-      "reseller": 1100
+      "regular": 570,
+      "reseller": 500
     },
     {
       "plan_id": "b1",
