@@ -2040,8 +2040,8 @@
       "plan_id": "acn_7d",
       "game": "AIM Normal",
       "label": "1 Week",
-      "regular": 180,
-      "reseller": 150
+      "regular": 450,
+      "reseller": 450
     },
     {
       "plan_id": "acn_30d",
