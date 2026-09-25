@@ -1991,8 +1991,8 @@
       "plan_id": "aim_1d",
       "game": "AIM-AI Carrom",
       "label": "01 Day",
-      "regular": 70,
-      "reseller": 65
+      "regular": 90,
+      "reseller": 90
     },
     {
       "plan_id": "aim_3d",
