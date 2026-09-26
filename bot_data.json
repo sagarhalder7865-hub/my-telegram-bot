@@ -571,6 +571,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 7008473173,
+      "first_name": "Ravin",
+      "username": "Samuraienginex",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-26 14:19:52"
+    },
+    {
       "user_id": 7013743897,
       "first_name": "Sagar",
       "username": "Sagarxarmy",
@@ -2016,7 +2026,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-26 02:22:25"
+      "added_at": "2026-09-26 13:57:01"
     }
   ],
   "orders": [],
