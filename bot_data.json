@@ -341,6 +341,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 6244673095,
+      "first_name": "Sudharshan",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-26 22:29:00"
+    },
+    {
       "user_id": 6327192354,
       "first_name": "Reax",
       "username": "REAX_7",
@@ -2066,7 +2076,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-26 13:57:01"
+      "added_at": "2026-09-26 22:15:38"
     }
   ],
   "orders": [],
