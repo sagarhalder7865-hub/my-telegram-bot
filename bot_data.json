@@ -471,6 +471,16 @@
       "joined_at": "2026-09-25 06:52:08"
     },
     {
+      "user_id": 6791233540,
+      "first_name": "@NeonNinja_YT",
+      "username": "NeonNinja_YT",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-26 01:09:39"
+    },
+    {
       "user_id": 6806488519,
       "first_name": "J S R",
       "username": "",
@@ -1966,7 +1976,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-25 14:50:56"
+      "added_at": "2026-09-25 22:55:45"
     }
   ],
   "orders": [],
