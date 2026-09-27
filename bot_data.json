@@ -721,6 +721,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 7205465055,
+      "first_name": "Aslam Sk",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-27 04:13:38"
+    },
+    {
       "user_id": 7218843448,
       "first_name": "Arjjed",
       "username": "samim_xxx",
@@ -2076,7 +2086,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-26 22:15:38"
+      "added_at": "2026-09-27 02:18:40"
     }
   ],
   "orders": [],
