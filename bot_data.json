@@ -191,6 +191,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 5402333610,
+      "first_name": "Abu",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-28 13:48:43"
+    },
+    {
       "user_id": 5417782065,
       "first_name": "Dileepa",
       "username": "I2dile",
