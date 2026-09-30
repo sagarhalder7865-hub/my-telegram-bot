@@ -1011,6 +1011,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 7950774910,
+      "first_name": "GAUTAM",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-09-30 04:42:47"
+    },
+    {
       "user_id": 7951273320,
       "first_name": "Harsh",
       "username": "",
@@ -2126,7 +2136,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-29 03:05:45"
+      "added_at": "2026-09-30 02:47:45"
     }
   ],
   "orders": [],
