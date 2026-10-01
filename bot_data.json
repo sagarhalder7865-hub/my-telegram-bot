@@ -1541,6 +1541,16 @@
       "joined_at": "2026-09-25 09:53:56"
     },
     {
+      "user_id": 8573720538,
+      "first_name": "DRAX",
+      "username": "DRAX_JIHAD_OFFICIAL",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-01 12:31:42"
+    },
+    {
       "user_id": 8596722998,
       "first_name": "\u09b0\u09be\u135d\u059f\u099c\u09c1 \u196b\u1b61.",
       "username": "",
@@ -2156,7 +2166,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-09-30 10:48:02"
+      "added_at": "2026-10-01 11:14:25"
     }
   ],
   "orders": [],
