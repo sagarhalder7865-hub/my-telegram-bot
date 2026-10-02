@@ -971,6 +971,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 7814313789,
+      "first_name": "Nirob",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-02 16:20:17"
+    },
+    {
       "user_id": 7829650511,
       "first_name": "\u0280\u1d0f\u1d0d\u1d07\u1d0f </> \ud83c\uddf5\ud83c\uddf1",
       "username": "Itzayush31",
@@ -2176,7 +2186,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-10-02 02:56:06"
+      "added_at": "2026-10-02 10:47:03"
     }
   ],
   "orders": [],
