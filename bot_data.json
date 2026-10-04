@@ -1271,6 +1271,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8350036357,
+      "first_name": "Vamshi",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-04 10:47:58"
+    },
+    {
       "user_id": 8358568464,
       "first_name": "Carl",
       "username": "",
@@ -2196,7 +2206,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-10-04 03:13:48"
+      "added_at": "2026-10-04 10:47:55"
     }
   ],
   "orders": [],
