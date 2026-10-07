@@ -1321,6 +1321,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8359218078,
+      "first_name": "@PrimeJod6",
+      "username": "ishowsujoy001",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 8996745387,
+      "joined_at": "2026-10-07 16:16:59"
+    },
+    {
       "user_id": 8395624164,
       "first_name": "\u13ae\u0280\u026a\u1d0d\u1d07\u3006\u1dbb\u1d31\u1d3f\u1d3c\u02e3?",
       "username": "Zerozoom11",
@@ -2224,7 +2234,7 @@
       "user_id": 8996745387,
       "first_name": "B",
       "username": "",
-      "balance": 0,
+      "balance": 1,
       "script_balance": 0,
       "is_banned": 0,
       "referrer_id": 0,
