@@ -161,6 +161,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 5335032406,
+      "first_name": "Hank",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-07 13:24:10"
+    },
+    {
       "user_id": 5348000869,
       "first_name": "Vikcy",
       "username": "",
@@ -2226,7 +2236,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-10-06 11:34:59"
+      "added_at": "2026-10-07 11:24:34"
     }
   ],
   "orders": [],
