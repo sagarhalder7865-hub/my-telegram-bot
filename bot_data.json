@@ -1221,6 +1221,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8257812469,
+      "first_name": "Akash",
+      "username": "Akashgaming1979",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-08 01:46:31"
+    },
+    {
       "user_id": 8261845673,
       "first_name": "alamin",
       "username": "",
@@ -2256,7 +2266,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-10-07 11:24:34"
+      "added_at": "2026-10-07 20:16:19"
     }
   ],
   "orders": [],
