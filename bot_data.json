@@ -284,7 +284,7 @@
       "user_id": 5969879415,
       "first_name": "\ud835\udc07\ud835\udc00\ud835\udc11\ud835\udc08",
       "username": "",
-      "balance": 200,
+      "balance": 250,
       "script_balance": 0,
       "is_banned": 0,
       "referrer_id": 0,
@@ -2276,7 +2276,7 @@
       "id": 1,
       "plan": "c7",
       "key_code": "ECEE1-69A96-38E5C-51B8S",
-      "added_at": "2026-10-08 11:40:18"
+      "added_at": "2026-10-09 23:39:12"
     }
   ],
   "orders": [],
