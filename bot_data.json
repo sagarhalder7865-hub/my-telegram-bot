@@ -575,7 +575,7 @@
       "first_name": "AutoPlay Seller Rakib",
       "username": "RakibGaming20",
       "balance": 0,
-      "script_balance": 1240,
+      "script_balance": 1040,
       "is_banned": 0,
       "referrer_id": 0,
       "joined_at": "2026-09-21 02:08:09"
@@ -2625,7 +2625,7 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-10-10 13:07:08"
+      "created_at": "2026-10-12 03:03:44"
     }
   ]
 }
