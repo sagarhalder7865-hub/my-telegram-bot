@@ -621,6 +621,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 6903735098,
+      "first_name": "FLAXXI...!!",
+      "username": "Flaxxiengine",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-18 06:32:27"
+    },
+    {
       "user_id": 7001347886,
       "first_name": "Jahangir",
       "username": "jahangir_ff_71",
@@ -2655,7 +2665,7 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-10-17 17:36:50"
+      "created_at": "2026-10-18 01:56:31"
     }
   ]
 }
