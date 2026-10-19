@@ -751,6 +751,16 @@
       "joined_at": "2026-09-25 09:53:57"
     },
     {
+      "user_id": 7146194938,
+      "first_name": "\u25e4s\u1d00\u1d0bs\u029c\u1d00\u1d0d\u25e2",
+      "username": "Saksham_94200",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-19 08:13:09"
+    },
+    {
       "user_id": 7171379649,
       "first_name": "AMAAN",
       "username": "",
@@ -2665,7 +2675,7 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-10-18 01:56:31"
+      "created_at": "2026-10-19 02:13:09"
     }
   ]
 }
