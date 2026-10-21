@@ -2151,6 +2151,16 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8902848114,
+      "first_name": "Aj",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-21 01:26:24"
+    },
+    {
       "user_id": 8903840887,
       "first_name": "Dibbo",
       "username": "",
@@ -2675,7 +2685,7 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-10-19 18:51:28"
+      "created_at": "2026-10-20 22:47:09"
     }
   ]
 }
