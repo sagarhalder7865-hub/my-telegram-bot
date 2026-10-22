@@ -279,6 +279,48 @@ def append_hg_to_gist(username_key, password, expire_date_str):
     except Exception as e:
         return False, str(e)
 
+def remove_hg_from_gist(username_key):
+    try:
+        if not GITHUB_TOKEN:
+            return False, "Server Token is not set!"
+        
+        headers = get_auth_headers()
+        get_url = f"https://api.github.com/gists/{HG_GIST_ID}"
+        get_res = requests.get(get_url, headers=headers, timeout=10)
+        
+        data = {"status": "active", "telegram": "https://t.me/happygamerc", "seller_name": "HG Auto", "users": {}}
+        if get_res.status_code == 200:
+            files_data = get_res.json().get("files", {})
+            if HG_FILE_NAME in files_data:
+                try:
+                    data = json.loads(files_data[HG_FILE_NAME].get("content", "{}"))
+                except Exception:
+                    pass
+        else:
+            raw_url = f"https://gist.githubusercontent.com/sagarhalder7865-hub/{HG_GIST_ID}/raw/{HG_FILE_NAME}?t={int(time.time())}"
+            raw_res = requests.get(raw_url, timeout=10)
+            if raw_res.status_code == 200:
+                try:
+                    data = json.loads(raw_res.text)
+                except Exception:
+                    pass
+
+        if "users" not in data or username_key not in data["users"]:
+            return False, f"Username/Key '{username_key}' not found in HG Engine Cloud database!"
+
+        # Delete the user/key entry
+        del data["users"][username_key]
+
+        updated_content = json.dumps(data, indent=2)
+        patch_payload = {"files": {HG_FILE_NAME: {"content": updated_content}}}
+        patch_res = requests.patch(get_url, headers=headers, json=patch_payload, timeout=10)
+        if patch_res.status_code in [200, 201]:
+            return True, None
+        else:
+            return False, f"Status {patch_res.status_code}: {patch_res.text}"
+    except Exception as e:
+        return False, str(e)
+
 def purge_expired_gist_keys():
     try:
         if not GITHUB_TOKEN: return 0
@@ -1699,6 +1741,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "╚═══════════════════════════════════════╝\n\n"
         "🛠️ HG Engine & Script Management:\n"
         "• /hgkey <days> <username> ➜ Generate HG Engine key\n"
+        "• /removehgkey <username> ➜ Remove HG Engine key & password from Gist\n"
         "• /addhgadmin <id> / /removehgadmin <id>\n"
         "• /addhgbal <id> <amount> ➜ Add HG Engine Balance\n"
         "• /scriptkey <days> <device_id> ➜ Auto Script Key Generate\n"
@@ -1805,6 +1848,28 @@ async def cmd_hgkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await status_msg.edit_text(f"❌ <b>HG Cloud Update Failed:</b> <code>{err}</code>", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ <b>Error:</b> <code>{e}</code>", parse_mode="HTML")
+
+async def cmd_removehgkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id not in ADMINS and not db_is_hg_admin(user_id):
+        return
+    if not context.args:
+        await update.message.reply_text("💡 Usage: /removehgkey <username_key>", parse_mode="HTML")
+        return
+    username_key = context.args[0].strip()
+    status_msg = await update.message.reply_text("⏳ Removing HG Engine Key & Password from Cloud Server...", parse_mode="HTML")
+    success, err = remove_hg_from_gist(username_key)
+    if success:
+        await status_msg.edit_text(
+            "╔═══════════════════════════╗\n"
+            "║ 🗑️ HG ENGINE KEY REMOVED! ║\n"
+            "╚═══════════════════════════╝\n\n"
+            f"👤 Username/Key: <code>{username_key}</code>\n"
+            "☁️ Cloud Status: Successfully deleted from HG Engine database!",
+            parse_mode="HTML"
+        )
+    else:
+        await status_msg.edit_text(f"❌ Removal Failed: {err}", parse_mode="HTML")
 
 async def cmd_addscriptadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMINS: return
@@ -2023,6 +2088,8 @@ if __name__ == "__main__":
 
     # HG Engine Commands
     app.add_handler(CommandHandler("hgkey", cmd_hgkey))
+    app.add_handler(CommandHandler("removehgkey", cmd_removehgkey))
+    app.add_handler(CommandHandler("delhgkey", cmd_removehgkey))
     app.add_handler(CommandHandler("addhgadmin", cmd_addhgadmin))
     app.add_handler(CommandHandler("removehgadmin", cmd_removehgadmin))
     app.add_handler(CommandHandler("addhgbal", cmd_addhgbal))
