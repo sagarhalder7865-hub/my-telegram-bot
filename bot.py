@@ -308,7 +308,6 @@ def remove_hg_from_gist(username_key):
         if "users" not in data or username_key not in data["users"]:
             return False, f"Username/Key '{username_key}' not found in HG Engine Cloud database!"
 
-        # Delete the user/key entry
         del data["users"][username_key]
 
         updated_content = json.dumps(data, indent=2)
@@ -1153,7 +1152,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_direct_payment(update, context, is_photo=False)
     elif text in ["📦 Stock", "/stock"]:
         await update.message.reply_text(stock_text(), parse_mode="HTML")
-    elif text in ["📞 Admin Help", "Admin Help 📞", "/help"]:
+    elif text in ["📞 Admin Help", "Admin Help 📞"]:
         await update.message.reply_text(
             f"╔═══════════════════════════╗\n"
             f"║ 📞 <b>CUSTOMER SUPPORT</b> ║\n"
@@ -1734,27 +1733,43 @@ async def cmd_resetdata(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🧹 DATABASE & BALANCES COMPLETELY PURGED!\nAll user balances reset to ₹0.00 and synchronized with GitHub.", parse_mode="HTML")
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMINS: return
+    user_id = update.effective_user.id
+    if user_id not in ADMINS:
+        # Normal user gets customer support message
+        await update.message.reply_text(
+            f"╔═══════════════════════════╗\n"
+            f"║ 📞 <b>CUSTOMER SUPPORT</b> ║\n"
+            f"╚═══════════════════════════╝\n\n"
+            f"For instant VIP assistance, inquiries, or custom reseller quotas:\n\n"
+            f"👉 <b>Official Admin:</b> {ADMIN_USERNAME}\n"
+            f"⚡ Active Time: 10:00 AM - 12:00 AM IST",
+            parse_mode="HTML"
+        )
+        return
+
     help_text = (
         "╔═══════════════════════════════════════╗\n"
         "║ 👑 ADMIN FULL CONTROL & KEY CODES ║\n"
         "╚═══════════════════════════════════════╝\n\n"
-        "🛠️ HG Engine & Script Management:\n"
-        "• /hgkey <days> <username> ➜ Generate HG Engine key\n"
-        "• /removehgkey <username> ➜ Remove HG Engine key & password from Gist\n"
-        "• /addhgadmin <id> / /removehgadmin <id>\n"
-        "• /addhgbal <id> <amount> ➜ Add HG Engine Balance\n"
-        "• /scriptkey <days> <device_id> ➜ Auto Script Key Generate\n"
-        "• /removescriptkey <device_id> ➜ Remove Script Device Key\n\n"
-        "📌 Stock Adding (/addkey):\n"
-        "• /addkey shini_1d KEY (1 Day Shinigami)\n"
-        "• /addkey aim_1d KEY (01 Day Aim-AI)\n"
-        "• /addkey c1 KEY (1 Day KOS Carrom)\n\n"
-        "🛠️ General Commands:\n"
-        "• /add <id> <amount> ➜ Add User Wallet Balance\n"
-        "• /ban <id> / /unban <id>\n"
-        "• /broadcast <text>\n"
-        "• /addreseller <id> / /removereseller <id>"
+        "🛠️ <b>HG Engine & Script Management:</b>\n"
+        "• <code>/hgkey &lt;days&gt; &lt;username&gt;</code>\n"
+        "• <code>/removehgkey &lt;username&gt;</code>\n"
+        "• <code>/addhgadmin &lt;id&gt;</code> | <code>/removehgadmin &lt;id&gt;</code>\n"
+        "• <code>/addhgbal &lt;id&gt; &lt;amount&gt;</code>\n"
+        "• <code>/scriptkey &lt;days&gt; &lt;device_id&gt;</code>\n"
+        "• <code>/removescriptkey &lt;device_id&gt;</code>\n\n"
+        "📌 <b>Stock Adding (/addkey):</b>\n"
+        "• <code>/addkey shini_1d YOUR_KEY</code>\n"
+        "• <code>/addkey aim_1d YOUR_KEY</code>\n"
+        "• <code>/addkey c1 YOUR_KEY</code>\n\n"
+        "🛠️ <b>General Commands:</b>\n"
+        "• <code>/resetdata</code>\n"
+        "• <code>/add &lt;id&gt; &lt;amount&gt;</code>\n"
+        "• <code>/broadcast &lt;text&gt;</code>\n"
+        "• <code>/ban &lt;id&gt;</code> | <code>/unban &lt;id&gt;</code>\n"
+        "• <code>/deliver &lt;id&gt; &lt;key&gt;</code>\n"
+        "• <code>/setprice &lt;code&gt; &lt;reg&gt; &lt;res&gt;</code>\n"
+        "• <code>/addreseller &lt;id&gt;</code> | <code>/removereseller &lt;id&gt;</code>"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
