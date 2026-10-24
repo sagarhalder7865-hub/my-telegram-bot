@@ -2052,7 +2052,7 @@
       "username": "cp_seller_anil",
       "balance": 0,
       "script_balance": 0,
-      "hg_balance": 730,
+      "hg_balance": 700,
       "is_banned": 0,
       "referrer_id": 0,
       "joined_at": "2026-10-22 10:46:28"
@@ -2940,13 +2940,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-10-24 13:43:11"
+      "created_at": "2026-10-24 17:42:34"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-10-24 13:43:11"
+      "created_at": "2026-10-24 17:42:34"
     }
   ]
 }
