@@ -749,6 +749,17 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 7029605672,
+      "first_name": "OFFICIAL",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "hg_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-10-25 10:39:20"
+    },
+    {
       "user_id": 7048077349,
       "first_name": "Manas",
       "username": "",
@@ -2940,13 +2951,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-10-25 02:07:34"
+      "created_at": "2026-10-25 09:29:00"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-10-25 02:07:34"
+      "created_at": "2026-10-25 09:29:00"
     }
   ]
 }
