@@ -1739,6 +1739,17 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8487222378,
+      "first_name": "\u042e\u043b\u0438\u044f",
+      "username": "murscs680",
+      "balance": 0,
+      "script_balance": 0,
+      "hg_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-11-06 07:52:47"
+    },
+    {
       "user_id": 8487453772,
       "first_name": "Jakir",
       "username": "",
@@ -2984,13 +2995,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-11-03 12:28:22"
+      "created_at": "2026-11-06 03:58:57"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-11-03 12:28:22"
+      "created_at": "2026-11-06 03:58:57"
     }
   ]
 }
