@@ -78,6 +78,17 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 1726240621,
+      "first_name": "Sumit",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "hg_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-11-07 11:35:26"
+    },
+    {
       "user_id": 1810737546,
       "first_name": "Azad",
       "username": "",
@@ -3006,13 +3017,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-11-06 20:38:34"
+      "created_at": "2026-11-07 11:23:20"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-11-06 20:38:34"
+      "created_at": "2026-11-07 11:23:20"
     }
   ]
 }
