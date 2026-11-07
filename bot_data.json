@@ -2639,6 +2639,17 @@
       "is_banned": 0,
       "referrer_id": 0,
       "joined_at": "2026-09-21 02:08:09"
+    },
+    {
+      "user_id": 9236008588,
+      "first_name": "Aadm",
+      "username": "",
+      "balance": 0,
+      "script_balance": 0,
+      "hg_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-11-07 02:26:52"
     }
   ],
   "keys": [],
@@ -2995,13 +3006,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-11-06 03:58:57"
+      "created_at": "2026-11-06 20:38:34"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-11-06 03:58:57"
+      "created_at": "2026-11-06 20:38:34"
     }
   ]
 }
