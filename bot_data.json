@@ -1497,6 +1497,17 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 8293501308,
+      "first_name": "\u041f\u043e\u043b\u0438\u043d\u0430",
+      "username": "guseva_polina85",
+      "balance": 0,
+      "script_balance": 0,
+      "hg_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-11-07 23:19:16"
+    },
+    {
       "user_id": 8295413437,
       "first_name": "Yash",
       "username": "YGSeller123",
@@ -3017,13 +3028,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-11-07 11:23:20"
+      "created_at": "2026-11-07 23:12:14"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-11-07 11:23:20"
+      "created_at": "2026-11-07 23:12:14"
     }
   ]
 }
