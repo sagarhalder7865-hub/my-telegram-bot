@@ -463,6 +463,17 @@
       "joined_at": "2026-09-26 22:29:00"
     },
     {
+      "user_id": 6262114949,
+      "first_name": "ADITYA H4X",
+      "username": "ADITYA_H4X",
+      "balance": 0,
+      "script_balance": 0,
+      "hg_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-11-12 17:40:12"
+    },
+    {
       "user_id": 6327192354,
       "first_name": "Reax",
       "username": "REAX_7",
@@ -3028,13 +3039,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-11-07 23:12:14"
+      "created_at": "2026-11-12 13:24:56"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-11-07 23:12:14"
+      "created_at": "2026-11-12 13:24:56"
     }
   ]
 }
