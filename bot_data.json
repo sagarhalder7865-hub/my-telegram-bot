@@ -452,6 +452,17 @@
       "joined_at": "2026-09-21 02:08:09"
     },
     {
+      "user_id": 6241612042,
+      "first_name": "Polina",
+      "username": "polina_guseva72",
+      "balance": 0,
+      "script_balance": 0,
+      "hg_balance": 0,
+      "is_banned": 0,
+      "referrer_id": 0,
+      "joined_at": "2026-11-13 00:51:53"
+    },
+    {
       "user_id": 6244673095,
       "first_name": "Sudharshan",
       "username": "",
@@ -3039,13 +3050,13 @@
   "script_admins": [
     {
       "user_id": 6824314386,
-      "created_at": "2026-11-12 13:24:56"
+      "created_at": "2026-11-12 21:38:17"
     }
   ],
   "hg_admins": [
     {
       "user_id": 8680911088,
-      "created_at": "2026-11-12 13:24:56"
+      "created_at": "2026-11-12 21:38:17"
     }
   ]
 }
